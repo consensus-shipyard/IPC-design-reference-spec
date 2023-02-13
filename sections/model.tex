@@ -1,6 +1,11 @@
 \section{Model}
 \label{sec:model}
 
+The vocabulary used throughout this document is summarized in the IPC Glossary, currently available at
+\href{https://docs.google.com/document/d/15pA7ahjeA-HYOl8Pxj0n6PxEswYlRVrZ112MJuRR0fY/edit?usp=sharing}{https://docs.google.com/document/d/15pA7ahjeA-HYOl8Pxj0n6PxEswYlRVrZ112MJuRR0fY/edit?usp=sharing}
+
+\matej{When the Glossary becomes stable, we can maybe add it as an appendix to this document.}
+
 \subsection{Computation and failure model}
 
 We model \nameAbbr as a distributed (``message-passing") system consisting of \emph{processes} that communicate by exchanging \emph{messages}%
@@ -21,10 +26,10 @@ We describe processes as exemplified in \Cref{alg:process-definition}.
   ...\\
   \Component{process}{
      \UponKW{event(params...)}{
-       \tcp{Logic to execute}
+       \tcp{Logic to execute atomically}
      }
      \UponKW{message(params...)}{
-       \tcp{Logic to execute}
+       \tcp{Logic to execute atomically}
      }
      ...
 }
