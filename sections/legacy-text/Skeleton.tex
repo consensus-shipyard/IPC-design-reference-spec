@@ -1,0 +1,98 @@
+\section{Skeleton}
+\label{sec:Skeleton}
+
+\begin{itemize}
+    \item Every node in sub-net $\SN$ is also a node in all subnets that are ancestors of $\SN$. 
+    This limits the practical depth of the hierarchy, since a ``deep'' node must divide its finite resources (bandwidth, computation, etc.) among all ancestor subnets. \guy{Should still offer great benefits. Should be analyzed theoretically under some assumption, for example: share of ``local'' interactions.}
+    \begin{itemize}
+        \item only consider full nodes; light nodes should be considered independently.
+    \end{itemize}
+    \item For each user there exists a hierarchy of accounts --- one for each sub-net it operates in. The account at $\SN$ contains the amount of tokens the user has at $\SN$ as well as the amount of tokens that are locked for use in the immediate children of $\SN$ (if the user has accounts there). 
+    \begin{itemize}
+        \item For simplicity, we consider a user always has its root account in the rootnet. In general, it is possible to have the root account at any subnet. However, once the root account is established the user can only open accounts in descendants of that subnet.%
+        \footnote{To add accounts in other subnets, the user will need to create a new root account.}
+    \end{itemize}
+    \item An account interacts directly only with accounts at the same sub-net \textit{or} with the account's parent/children. \guy{My rational here is to provide the minimal necessary interface. See \cref{sec:inter subnet interactions} for details on inter sub-net interactions.}
+    %transfers are made only between accounts at the same sub-net or between parent-child accounts of the same user.
+    \begin{enumerate}
+        \item \textbf{Intra sub-net interactions.} These interactions could include general operations (e.g., CAS) and are not restricted by \hc s design, they should follow the specific subnet definitions.
+        \item \textbf{Parent--Child interactions.} These interactions are limited to token transfers between the user's parent/child accounts. \guy{Since both accounts are controlled by the same user, we do not need to worry about the flow of information between them --- it is the same entity and it knows what it's doing! We do need to reflect the state change to the entire system. That is, the new balances in the accounts (after tokens were transferred between the parent and child) must be visible to the respective sub-nets.}
+    \end{enumerate}
+    \item Interactions between parents and children are done periodically\arp{not necessarily} (e.g., together with checkpointing). \guy{clarify with Alfonso \cref{sec:P-C interactions}}
+    \begin{itemize}
+        \item This may be slower (in inter sub-net communication) but has the advantage of better isolation (and security) for sub-nets.
+        \item A different option would be to allow parent-child interactions continuously in an atomic execution manner. However, this increases the complexity of the system and enables edge cases. For example, when executed alone, sub-net validators can easily ignore a user's attempt to transfer funds from its parent account. This censorship incurs a higher cost when it is tied to checkpointing the entire system.
+    \end{itemize}
+    \item Checkpointing is used for 2 purposes:
+    \begin{enumerate}
+        \item To enact the token transfers between parent-child accounts of the same user. E.g., releasing some of a user's tokens that are locked in $\SN$ to its account in \parent{$\SN$}. This is what enables the hierarchy to function. Necessary!\guy{also guarantees an account-grained firewall.}\arp{same as withdrawals}
+        \item There is another use for checkpoints that is unnecessary for the \hc{} functionality but provides an additional benefit to the users. Periodically checkpointing the (complete) state of $\SN$ to its parent for added persistence that relies on the parent's guarantees. \arp{long-range attack mitigation}
+        %\item to communicate changes upwards, i.e., releasing some of a user's tokens that are locked in $\SN$ to its account in \parent{$\SN$}.
+    \end{enumerate}
+    Notice that the two purposes of the checkpointing routine are theoretically independent of each other. In practice, however, they will probably be combined so further thought on the matter is warranted.
+    \blue{Remark: while each sub-net can be a full SMR, for \hc s functionality, only accounting information (balance) needs to be communicated between child and parent sub-nets.}\arp{actually, only circulating supply suffices}
+        \footnote{Simplifies things and should be sufficient. In order to reduce load from the parent, all of the changes that happened in the sub-net since the last checkpoint should be compressed into an efficient state-transfer operation. Hence, general state compression might be problematic. Accounts balance is easy to do and fits most uses. A future question would be extending to other states besides balances.}
+    \item The creation and maintenance of a sub-net $\SN$ is governed by an \actor{} in \parent{$\SN$}.
+    
+\end{itemize}
+
+\subsection{Checkpoint issues}
+\red{TODO: explain compression issue.}\\
+A checkpoint can be seen as a transaction in the parent net.\guy{Although crypto-econ lab approach is different, that is, they suggest special treatment for messages/actions that come from an \actor{} governing a subnet. I believe in a simpler design in which the aforementioned message is treated as any other message. I conjecture that this natural design (no need for special treatment) would be more robust in practice.}
+However, several issues arise with regard to the cost of proposing a transaction.
+A typical transaction is proposed by the user who wishes to get it into the blockchain, and hence, carries the associated costs --- specifically, the fee offered to the ``miners".
+The proposing user, thus, decides solely on how much fee to offer. Simply putting, \emph{the one who receives the goods also pays for it}.
+This forms the basis for classic economic theory of supply and demand.
+On the other hand, in the case of the checkpoint fee, all nodes/users of $\SN$ decide on the fee and pay it (through the \actor), but not necessarily all of them have the same benefit from the checkpoint. 
+For example, a user that did not perform any transactions since the last checkpoint might consider the checkpoint less urgent than a user that wishes to release funds to its parent account. 
+\textbf{This issue requires further analysis!}\guy{To provide some default as a starting point, we can use a simple algorithm at the \actor{} that sets the proposed fee according to past information on the parent.}
+
+\begin{itemize}
+    \item If \parent{$\SN$} employs EIP1559, the problem is significantly mitigated. Setting the proposed fee based on an algorithm in the \actor{} is relatively safe since miners revenue is mostly block rewards and fees are expected to be negligible. Hence, miners have negligible incentive to discriminate transactions based on fees. (That is assuming that we trust EIP1559.)
+    \item If \parent{$\SN$} employs the classic bidding mechanism to decide on which transactions to include in a block (i.e, highest fees win), the fact that the fee is payed from the ``common" account is problematic. It might incentive miners to manipulate the \actor 's fee-setting algorithm.
+\end{itemize}
+
+\subsection{Parent-Child Interactions}
+\label{sec:P-C interactions}
+\begin{itemize}
+    \item currently parent-child communication is asymmetric. Parents send transactions down continuously but children send upwards only through checkpoints. This could be problematic (e.g., liveness of the protocol? Potential DDoS/flooding attack from the parent?). Suggestion: Initially, make transactions symmetric --- both directions happen through checkpoints.
+    \begin{itemize}
+        \item what is the subnet state included in the checkpoint that can be atomically modified with the top-down messages queued in the parent so the subnet knows the state from which to start again?
+        \item how does a sub-net continues after a checkpoint? Is the checkpoint treated as a "genesis"?
+        \item Can the sub-net continue optimistically? (probably, we can determine the delta and merge the ``extra operations" included in the parent).
+    \end{itemize}
+\end{itemize}
+
+\subsection{Inter sub-net Interactions}
+\label{sec:inter subnet interactions}
+Conceptually, users are the ones that want to act, they do so by their accounts in the system.
+If a user wishes to interact with an asset that is in the control of sub-net $\SN$ (e.g., a smart contract), she should open an account in that sub-net. \guy{Enabling an account from subnet $\SN_1$ to interact with resources in $\SN_2$ opens the door to long-term troubles.}
+
+Fundamentally, cross-net messages are a chain of (upward) interactions between accounts of the same user until reaching a common ancestor with the target, then an interaction within this ancestor subnet, and finally a chain of (downward) interactions to the target recipient. Since both the upward and downward chains happen within the same user, it is her responsibility to make them happen (when your brain tells your hand to move, I don't need to interfere). The only interaction between distinct users happens in the same subnet and then we are in charge of making sure it happens properly.
+Having said that, clearly, from a UX point of view, a gadget that helps the user execute the upward/downward chain of interactions will be important to users.
+A service that streamlines the process of inter sub-net interactions (from a client's perspective) could be build on top of our system.
+Nevertheless, in my opinion, cross-net messaging (with multiple hops) should not be a part of the core functionality but rather an add-on gadget. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Slashing}\label{sec:slashing}
+Slashing is an additional functionality that aims at increasing the user's trust in a subnet.
+In essence, by financially punishing misbehavior, participants are encouraged to follow the protocol.
+
+Clearly, a general slashing mechanism that fits all possible subnets is impossible to devise. Hence, we suggest here a reference mechanism that fits several known Blockchain/SMR protocols~\cite{Filecoin,ETH,...}.
+
+\subsection{Reference Slashing Mechanism}
+We start by outlining the key principles:
+\begin{itemize}
+    \item The slashing is done at the parent. That means, the collateral of an $\SN$-validator is stored and managed at subnet $\parent{\SN}$.
+    \item Slashing is done linearly with respect to the validator's voting power. E.g., if an equivocation from validator~$a$ with~$x_a$ of the voting power results in~$s_a$ deduction from $a$'s collateral, then an equivocation from validator~$b$ with $x_b=2x_a$ results in a deduction of $s_b=2s_a$ from~$b$'s collateral.
+    \item Offences that are more of a ``malicious nature'' should incur higher penalties than ``benign'' offences.
+\end{itemize}
+Example of slashable offences:
+\begin{enumerate}
+    \item proposing equivocating blocks.
+    \item voting on more than one block per epoch.
+    \item proposing/voting on invalid block.
+\end{enumerate}

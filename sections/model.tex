@@ -1,0 +1,120 @@
+\section{Model}
+\label{sec:model}
+
+\subsection{Computation and failure model}
+
+We model \nameAbbr as a distributed (``message-passing") system consisting of \emph{processes} that communicate by exchanging \emph{messages}%
+\footnote{Network messages are not to be confused with Filecoin actor messages, that this document refers to as transactions.}
+over a network. 
+In practice, a process is a program running on a computer, having some state, and reacting to external events and messages received over a communication network.
+We describe processes as exemplified in \Cref{alg:process-definition}.
+
+\begin{algorithm}[H]
+\footnotesize
+\caption{Process definition.}\label{alg:process-definition}
+  \DontPrintSemicolon
+  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+  \SetKwFor{UponKW}{upon}{do}{fintq}
+  \SetKw{Trigger}{trigger}
+  variable = initial value\\
+  variable = initial value\\
+  ...\\
+  \Component{process}{
+     \UponKW{event(params...)}{
+       \tcp{Logic to execute}
+     }
+     \UponKW{message(params...)}{
+       \tcp{Logic to execute}
+     }
+     ...
+}
+\end{algorithm}
+
+A process that performs all the steps exactly as prescribed by the protocols it is participating in is \emph{correct}.
+A process that stops performing any steps (i.e., \emph{crashes}) or that deviates from the prescribed protocols in any way is \emph{faulty}.
+If a process is correct or may only fail by crashing, it is \emph{benign}.
+A non-benign process is \emph{malicious}.
+\matej{We can remove terms we end up not using...}
+
+In general, faulty processes can be malicious (Byzantine), i.e., we do not put any restrictions on their behavior, except being computationally bounded and thus not being able to subvert standard cryptographic primitives, such as forging signatures or inverting secure hash functions.
+If the implementation of some component of the system requires additional assumptions on the behavior of faulty processes, they will be stated explicitly.
+% We do not make a general statement about the fault tolerance of \nameAbbr as a system, as to how many faulty processes the system can sustain.
+% This depends on the final implementation of its components.
+
+We use the term \emph{participant} to describe an entity participating in the system that controls one or more processes.
+All processes controlled by one participant trust each other, i.e., can assume each other's correctness.
+For example, a participant in the child subnet will probably run multiple processes:
+one for participating in the child subnet's protocol (child replica),
+one for participating in the parent subnet (parent replica),
+and one process that processes the information from the above two and submits transactions accordingly (\nameAbbr agent).
+We precisely define the replicas and the \nameAbbr agent (all of them being processes) in \Cref{sec:components,sec:smr}.
+The \nameAbbr agent of a participant always assumes that the information it receives from "its own" child replica is correct.
+However, messages received from another participant's replica or \nameAbbr agent are seen as potentially malicious.
+
+The synchrony assumptions may vary between different components of \nameAbbr.
+We thus state those assumptions whenever necessary, when describing concrete implementations of \nameAbbr components.
+
+\subsection{State machine replication and \dapps}
+\label{sec:smr}
+
+A \emph{state machine replication (SMR) system}%
+\footnote{In this document, we use the terms ``SMR system" and ``blockchain" interchangeably.}
+is a system consisting of processes called \emph{replicas}, each of which locally stores a copy of (or at least has access to) \emph{replicated state}
+that it updates over time by applying a sequence of \emph{transactions} to it.
+Without specifying the details of it, we assume that any process can \emph{submit} a transaction to an SMR system and that this transaction will eventually be ordered and applied to the replicated state.
+
+An SMR system guarantees to each correct replica that, after applying $n$ transactions to its local copy of the replicated state,
+the latter will be identical to any other correct replica’s copy of the replicated state after applying $n$ transactions.
+The replicas achieve this by executing an \emph{ordering protocol} to agree on a common sequence of transactions to apply to the replicated state.
+
+Note that replicas do not necessarily all hold the same replicated state at any instant of real time,
+since each replica might be processing transactions at a different time.
+In this context, there is no such thing as “the current replicated state of the SMR system”.
+There is only the current replicated state of a single replica.
+The replicated state of the system is only an abstract, logical construct
+useful for reasoning about transitions from one replicated state to another,
+happening at individual replicas by applying transactions (at different real times).
+When referring to a “current” replicated state, we mean the state resulting from the application of a certain number of transactions to the initial state.
+
+The replicated state of an SMR system can be logically subdivided into multiple \emph{\dapps} (a.k.a. actors in Filecoin).
+A \dapp is a portion of the replicated state with well-defined semantics.
+It defines the logic (e.g., expressed in a programming language, like Solidity in Ethereum)
+that a replica needs to execute when applying transactions and the new state that results from it.
+
+We model a \dapp as a logical object in the replicated state that contains arbitrary variables representing its state.
+Its associated logic reacts to \emph{events} triggered by (1) the application of transactions or (2) execution of other (or even own) smart contract logic. We describe smart contracts as exemplified in \Cref{alg:dapp-definition}.
+
+\begin{algorithm}[H]
+\footnotesize
+\caption{\dapp definition}\label{alg:dapp-definition}
+  \DontPrintSemicolon
+  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+  \SetKwFor{UponKW}{upon}{do}{fintq}
+  \SetKw{Trigger}{trigger}
+  variable = initial value\\
+  variable = initial value\\
+  ...\\
+  \Component{\dapp name}{
+     \UponKW{event(params...)}{
+       \tcp{Logic to execute}
+       \Trigger event(params...)
+     }
+     \UponKW{tx(params...)}{
+       \tcp{Logic to execute}
+       \Trigger event(params...)
+     }
+     ...
+}
+\end{algorithm}
+Note that, despite using similar syntax to describe processes and \dapps, those are fundamentally different.
+The former usually represent OS-level processes running on some physical machine,
+the latter are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
+While a process can submit a transaction to an SMR system, a \dapp cannot.
+
+In this document, we mostly focus on the interaction between a single parent SMR system (consisting of parent processes) and a single child SMR system (consisting of child processes), as this is the most important building block of \nameAbbr.
+In the next section, we describe the components involved in this interaction and their interfaces.
+
+\subsection{Money}
+
+We assume that all \dapps have a notion of \emph{money}, that they can transfer among each other within one SMR system.
+Each user of the SMR system is assumed to be associated with their personal \dapp called \emph{wallet}.

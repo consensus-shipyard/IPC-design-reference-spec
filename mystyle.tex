@@ -1,0 +1,72 @@
+%\newtheorem{observation}{Observation}
+\newtheorem{claim}{Claim}
+%\newtheorem{lemma}{Lemma}
+%\newtheorem{corollary}[lemma]{Corollary}
+\newtheorem{notation}{Notation}
+\newtheorem{invariant}{Invariant}
+\newtheorem{execution}{Execution}
+\newtheorem{ensemble}{Ensemble}
+\newtheorem*{ensemble*}{Ensemble}
+\newtheorem{strategy}{Strategy}
+\newtheorem*{strategy*}{Strategy}
+%\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+%\newtheorem{theorem}{Theorem}
+\newtheorem*{theorem*}{Theorem}
+%\newtheorem{proposition}{Proposition}
+% \newreptheorem{claim}{Claim}
+% \newreptheorem{definition}{Definition}
+% \newreptheorem{lemma}{Lemma}
+
+\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
+\textcolor{purple}{#1}]}}
+\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
+\textcolor{teal}{#1}]}}
+\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
+\textcolor{orange}{#1}]}}
+\newcommand{\blue}[1]{{\color{blue}{#1}}}
+\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\out}[1]{{\red{\sout{#1}}}}
+
+
+\newcommand{\ignore}[1]{}
+\newcommand{\alg}{$\mathcal A$}
+\newcommand{\act}{\alpha}
+\newcommand{\wrt}{w.r.t.\/}
+\newcommand{\adv}{\sigma}
+\newcommand{\SN}{\mathcal{SN}}
+\newcommand{\PN}{\mathcal{PN}}
+\newcommand{\parent}[1]{\texttt{parent}(#1)}
+\newcommand{\actor}{\textsf{Actor}}
+\newcommand{\hc}{HC}
+\newcommand{\user}{u}
+\newcommand{\fil}{\textit{amt}\xspace}
+\newcommand{\tx}{\textit{tx}\xspace}
+\newcommand{\txwf}{$tx(\fil,\; \user,\; fee)$\xspace} %tx w\ fee
+\newcommand{\txnf}{$tx(\fil,\; \user)$\xspace} %tx no fee
+\newcommand{\chkp}{$\langle \texttt{chkp},\; fee \rangle $\xspace} %checkpoint
+\newcommand{\pofs}{$pofs$\xspace}
+\newcommand{\prop}{$\langle \texttt{prop},\; fee, \; dest \rangle $\xspace} 
+\newcommand{\report}{$\langle \texttt{report},\; \pofs \rangle $\xspace} %report slash
+\newcommand{\slashop}{$\langle \texttt{slash},\; \pofs \rangle $\xspace} %slash
+\newcommand{\pUp}{\textsc{PropUp}}
+\newcommand{\pDn}{\textsc{PropDn}}
+\newcommand{\pHr}{\textsc{PropHere}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+\newcommand{\nameFull}{Interplanetary Consensus\xspace}
+\newcommand{\nameAbbr}{IPC\xspace}
+\newcommand{\sa}{\textit{SA}\xspace}
+\newcommand{\smr}{SMR\xspace}
+\newcommand{\gov}{\textit{gov-acc}\xspace}
+\newcommand{\pom}{\textit{PoM}\xspace} % Proof of Misbehavior
+\newcommand{\verifyGfinal}[2]{\textit{verifyGlobalFinality}({#1},{#2})\xspace} % verify the global finality of (#1-state/tx) in the shild subnet with assitance of (#2-proof).
+\newcommand{\prf}{\textit{PoF}\xspace}
+\newcommand{\data}{\textit{data}\xspace}
+\newcommand{\dest}{\textit{dest}\xspace}
+\newcommand{\src}{\textit{src}\xspace}
+\newcommand{\postoffice}{\textsc{post-office}\xspace}
+\newcommand{\eoa}{\textit{EOA}\xspace}
+\newcommand{\propagate}{\textit{propagate}}
+\newcommand{\dapp}{smart contract\xspace}
+\newcommand{\dapps}{smart contracts\xspace}
+\newcommand\T[1]{\noindent\textbf{#1}}

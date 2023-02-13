@@ -1,0 +1,111 @@
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+\graphicspath{{figs/}}
+\newcounter{myCounter}
+
+\begin{document}
+
+
+
+\title{\nameFull (\nameAbbr)}
+\date{}
+\author{Consensus Lab}
+% \authornote{Both authors contributed equally to this research.}
+% \orcid{1234-5678-9012}
+% \author{G.K.M. Tobin}
+% \authornotemark[1]
+%\email{sgoren@campus.technion.ac.il}
+% \orcid{https://orcid.org/0000-0003-2158-161X}
+% \affiliation{%
+%     \institution{Technion}
+%     \country{Israel}
+%     }
+
+\maketitle
+\begin{abstract}
+TODO
+\end{abstract}
+
+% ----------------------------------------------------------------
+% ----------------------------------------------------------------
+
+\input{sections/introduction.tex}
+\input{sections/model.tex}
+\input{sections/components.tex}
+\input{sections/functionality.tex}
+\input{sections/impl-tmpl.tex}
+\input{sections/finalityVerification.tex}
+
+ % - Components and their Interfaces
+ %   - Parent subnet node
+ %   - Child subnet node
+ %   - IPC module
+ %   - Subnet actor
+ % - IPC Functionality
+ %  - Minimum required per subnet
+ %    - Withdrawal/Deposits Interfaces
+ %    - Other Operations? (Propagate?)
+ %  - Enhancements
+ %    - Checkpointing interfaces
+ %    - Propagate
+ %    - Reporting/Slashing interfaces
+ %    - Atomic execution/swap, IBC-like bridges
+ %  - Future stuff (google docs?)
+ %    - Withdrawal at ancestor (skip parent(s)) (with timeout) etc.
+ % - Implementations/templates
+ %  - Different types and trade-offs of checkpoint triggers 
+ %    - Periodically: time, #blocks, #withdrawn, etc.
+ %    - At request: (this one is not governance funded)
+ %    - Combinations of these 
+ %    - Slashing functions
+ %    - Atomic execution types?
+ 
+\newpage
+\section{RAW LEGACY TEXT}
+\textcolor{red}{Anything below should be ignored by readers}
+\newpage
+\section{TODO}
+\begin{itemize}
+    \item Collateral
+    \item Schema
+\end{itemize}
+\input{sections/legacy-text/Introduction.tex}
+\input{sections/legacy-text/model.tex}
+\input{sections/legacy-text/Skeleton.tex}
+\input{sections/legacy-text/Miscellaneous}
+\newpage
+\input{sections/legacy-text/Pseudo-code}
+\input{sections/legacy-text/MeetingNotes.tex}
+% \input{sections/model.tex}
+% \input{sections/probabilisticInd.tex}
+% \input{sections/lowerBound.tex}
+% \input{sections/discussion.tex}
+% ----------------------------------------------------------------
+% ----------------------------------------------------------------
+
+%%
+%% The next two lines define the bibliography style to be used, and
+%% the bibliography file.
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+%%
+%% If your work has an appendix, this is the place to put it.
+\appendix
+% ----------------------------------------------------------------
+% ----------------------------------------------------------------
+\newpage
+% \input{sections/appendix.tex}
+% \input{sections/algorithm.tex}
+% \input{sections/QvW.tex}
+% \input{sections/Yao.tex}
+% ----------------------------------------------------------------
+% ----------------------------------------------------------------
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
+\endinput
+%%
+%% End of file 

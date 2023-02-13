@@ -1,0 +1,20 @@
+\section{Introduction}
+\label{sec:intro}
+
+Hierarchical Consensus is still an ongoing project, yet it already has an open source implementation available \cite{HCgit}.
+The best architecture description available is~\cite{de2022hierarchical}.
+
+This document will propose an architecture for the core functionality of \hc, on which additional layers/applications can be implemented.
+
+
+
+The goal of \hc{} is to improve the scalability of blockchain systems.%
+\footnote{This includes throughput increase as well as flexibility in Consensus mechanism choice.}
+The chosen approach is by exploiting the ``locality'' phenomenon of users interactions.
+In general, if users interact with each other in an arbitrary manner (or even uniformly at random), then there is no ``locality'' to exploit.
+However, typically in practical systems, users tend to cluster in a way that users inside a cluster interact with each other more frequently than with outside users.
+Roughly speaking, we wish to exploit this phenomenon by allowing a cluster to interact internally with less involvement of the main blockchain network.
+Consequently, the internal interactions become cheaper and faster, thus, reducing the costs for the user. 
+Moreover, the main blockchain also benefits from reduced load, since the demand to record every intra-cluster action is (partially) removed from the main blockchain.%
+\footnote{Intra-cluster actions are summarized and recorded periodically to the main blockchain. So these interactions are not completely removed from the main blockchain, but the amount of resources that are demanded from the main blockchain significantly reduces.}
+

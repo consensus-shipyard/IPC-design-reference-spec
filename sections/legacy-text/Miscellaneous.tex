@@ -1,0 +1,27 @@
+\section{Miscellaneous}
+\label{sec:misc}
+
+\subsection{Shortcuts as a Service}
+\red{Q: Can IBC be implemented independently as a ``shortcut" between subnets in the ``simple" model?}\\
+A general IBC channel between subnets might be problematic since it would damage the subnet isolation guarantees. 
+However, a service providing a ``shortcut" can be build as an application over the simple model, in a similar manner to bidirectional payment channels.
+A service provider opens 2 accounts -- one in each subnet -- and deposits tokens in each. Denote these subnets by $\SN_A$ and $\SN_B$, and the service accounts as $s_A\in\SN_A$ and $s_B\in\SN_B$.
+Now say that account $a$ from subnet~$A$ wants to transfer $m$~tokens to account $b\in\SN_B$. 
+It can do so by transferring $m$ tokens in $\SN_A$ to $s_A$ and having $s_B$ transfer $m$ tokens in $\SN_B$ to $b$. Thereby creating a ``shortcut" instead of traversing the hierarchy tree.
+Clearly, for this service~$a$ must pay fees to the service provider (to~$s_A$).
+
+\arp{this is HTLCs}The trust/risk in this service falls only on the ones who participate in it, namely, the users behind~$a$ and~$b$, and the service provider.
+Smart contracts can govern this service (instead of trusting the service provider).
+Essentially, $a$ deposits the tokens in the smart contract which releases them to the control of $s_A$ given a proof that $b$ have received the tokens from~$s_B$.
+The proof is based on $\SN_B$ guarantees, for example, the transaction appearing in $\SN_B$'s blockchain at a given depth.
+The tokens would be released back to~$a$ in case a timer expired without~$s_A$ providing the proof.
+To reduce costs in the common case, I suggest to include an ``cooparation'' release mechanism.
+By adding the possibility for~$a$ to approve that the transaction happened to its satisfaction, the need to include a proof from~$\SN_B$ in~$\SN_A$'s blockchain is mitigated, when everyone is honest.
+To encourage the use of the cooperation release by~$a$, the service provider can offer reduced fees whenever the release happens due to~$a$'a approval.
+
+While this service entails liquidity costs (for the service provider), having it as an application on top of the HC framework provides several benefits.
+(1) Service providers are expected to create shortcuts where they are most profitable, which should typically correlate with where they are most needed.
+(2) Competition may arise among different service providers, driving for better service and reduced costs.
+(3) All is done without central intervention.
+
+% This service could easily be generalized to include multiple subnets. A service provider can have accounts in multiple subnets, thereby averaging the flow among many channels.
