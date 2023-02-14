@@ -42,7 +42,7 @@ A non-benign process is \emph{malicious}.
 \matej{We can remove terms we end up not using...}
 
 In general, faulty processes can be malicious (Byzantine), i.e., we do not put any restrictions on their behavior, except being computationally bounded and thus not being able to subvert standard cryptographic primitives, such as forging signatures or inverting secure hash functions.
-If the implementation of some component of the system requires additional assumptions on the behavior of faulty processes, they will be stated explicitly.
+If the implementation of some component in our design requires additional assumptions on the behavior of faulty processes, they will be stated explicitly.
 % We do not make a general statement about the fault tolerance of \nameAbbr as a system, as to how many faulty processes the system can sustain.
 % This depends on the final implementation of its components.
 
@@ -66,7 +66,8 @@ A \emph{state machine replication (SMR) system}%
 \footnote{In this document, we use the terms ``SMR system" and ``blockchain" interchangeably.}
 is a system consisting of processes called \emph{replicas}, each of which locally stores a copy of (or at least has access to) \emph{replicated state}
 that it updates over time by applying a sequence of \emph{transactions} to it.
-Without specifying the details of it, we assume that any process can \emph{submit} a transaction to an SMR system and that this transaction will eventually be ordered and applied to the replicated state.
+Without specifying the details of it, we assume that any process can \emph{submit} a transaction to an SMR system (we call such a process an \emph{SMR client})
+and that this transaction will eventually be ordered and applied to the replicated state.
 
 An SMR system guarantees to each correct replica that, after applying $n$ transactions to its local copy of the replicated state,
 the latter will be identical to any other correct replica’s copy of the replicated state after applying $n$ transactions.
@@ -122,4 +123,4 @@ In the next section, we describe the components involved in this interaction and
 \subsection{Money}
 
 We assume that all \dapps have a notion of \emph{money}, that they can transfer among each other within one SMR system.
-Each user of the SMR system is assumed to be associated with their personal \dapp called \emph{wallet}.
+Each end user of the SMR system is assumed to have a personal wallet and a corresponding account in some subnet

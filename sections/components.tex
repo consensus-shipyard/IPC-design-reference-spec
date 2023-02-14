@@ -5,20 +5,25 @@
  %   - Subnet actor
  \section{Components and their Interfaces}
  \label{sec:components}
-We separate the software needed to run \nameAbbr into three processes and one \dapp:
+We separate the software needed to run \nameAbbr into three processes and two \dapps:
 
 \matej{\todo{Express those components and their interfaces also in pseudocode.}}
-\begin{itemize}
-    \item \textbf{Parent \smr replica:} The software that runs the parent blockchain. Note that this module also entails the interaction with the \nameAbbr smart contract~\sa, which is maintained at the parent subnet. Any update that the parent process performs on the \sa is notified to the \nameAbbr agent.
-    \item \textbf{Child \smr replica:} The software that runs the child blockchain. Note that some of the rules the child blockchain must satisfy are listed in the~\sa. Any output operation (withdraw, checkpoint) is notified to the parent process through the \nameAbbr agent. 
-    \item \textbf{\nameAbbr agent:} The software that is in charge of the interactions between the two blockchains. This includes, for example, observers for the parent and child subnets. Note that this is not a smart contract (it is not the \sa). It is a piece of software that runs at a node and mediates the interactions between the child and parent \smr software modules.
-    \item \textbf{IPC smart contract / subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
-\end{itemize}
+\begin{enumerate}
+    \item \textbf{\nameAbbr agent:} The software that is in charge of the interactions between the two blockchains. This includes, for example, observers for the parent and child subnets. (Note that it is a process and not a smart contract). The \nameAbbr agent is a piece of software that mediates the interactions between the child and parent \smr software modules.    
+    \item \textbf{Parent \smr replica:} The software that runs the parent blockchain. Note that this module also entails the interaction with the \nameAbbr smart contract~\sa, which is maintained at the parent subnet. Any update that the parent process performs on \sa is notified to the \nameAbbr agent.
+    \item \textbf{Child \smr replica:} The software that runs the child blockchain. Note that some of the rules the child blockchain must satisfy are listed in~\sa. Any output operation (withdraw, checkpoint) is notified to the parent process through the \nameAbbr agent. 
+%    \item \textbf{IPC smart contract / subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
+\end{enumerate}
+\begin{enumerate}
+	\item \textbf{IPC subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
+	\item \textbf{IPC coordinator/gateway actor (\gw):} a smart contract that exists in every subnet in the \nameAbbr hierarchy and contains methods facilitating inter-subnet operations.	
+\end{enumerate}
+
 
 We now define minimal interfaces between the different modules that enable the correct operation of an \nameFull system.
-A guiding principle in the interface design is to minimise changes to the \smr codebase; therefore, most extra logic of the \nameAbbr will be added into the \nameAbbr agent. Doing so should facilitate the deployment of \nameAbbr with new \smr protocols by not requiring a developer familiar with \nameAbbr to be an expert on \smr: some understanding is still needed to optimize the agent's implementation, but the \smr code would remain portable.
+A guiding principle in the interface design is to minimize changes to the \smr codebase; therefore, most extra logic of the \nameAbbr will be added into the \nameAbbr agent and the smart contracts \sa~and~\gw. Doing so should facilitate the deployment of \nameAbbr with new \smr protocols by not requiring a developer familiar with \nameAbbr to be an expert on \smr: some understanding is still needed to optimize the agent's implementation, but the \smr code would remain portable.
 
-We require three interfaces: (i) \nameAbbr agent --- parent \smr, (ii) \nameAbbr agent --- child \smr, and (iii) parent \smr --- \sa. Both (i) and (ii) can comprise of only:
+We require four interfaces: (i) \nameAbbr agent --- parent \smr, (ii) \nameAbbr agent --- child \smr, (iii) parent \smr --- \sa, and (iv) any \smr --- \gw. Both (i) and (ii) can comprise of only:
 \begin{enumerate}
     \item Agent submits a transaction~\tx to the \smr process.%
     \footnote{As part of the notification defined below, it could be that after submitting \tx, until the \smr process returns \textit{complete} (perhaps with a finality parameter) or \textit{declined}, \tx is considered \textit{pending}.}
@@ -26,9 +31,10 @@ We require three interfaces: (i) \nameAbbr agent --- parent \smr, (ii) \nameAbbr
     \item \smr process notifies the agent on events of interest (e.g., changes to the state of~\sa).
 \end{enumerate}
 
-The interface between the parent \smr and~\sa is based on the execution engine of the parent \smr and the functionality desired by~\sa. The specifics of the execution engine's system calls depend on implementation. Whenever such a call is not clear from context we provide a description of what it entails. 
+The interface between an \smr and~\sa or~\gw is based on the execution engine of that \smr and the functionality desired by~\sa. The specifics of the execution engine's system calls depend on implementation. Whenever such a call is not clear from context we provide a description of what it entails. \\
 
-The state of \sa includes representations of:
+
+\T{The state of \sa includes representations of:}
 % accounting
 % Consensus functionality
 % functionalities: proofOfFinality
@@ -60,23 +66,39 @@ The above suffice for an \nameFull system with a minimal inter-subnet functional
     %
     \item Checkpointing rules.
     \begin{itemize}
-        \item When checkpoints are valid. E.g., every~$\Delta$ subnet-blocks from the previous checkpoint, checkpoint's $L_2$ distance from the previous is larger than~$L$.
+        \item When checkpoints are valid. E.g., every~$\Delta$ subnet-blocks from the previous checkpoint, or the checkpoint's $L_2$ distance from the previous is larger than~$L$.
         \item Fee payments for checkpoints.
     \end{itemize}
     %
-    \item Inter-subnet transactions service (denoted \postoffice). 
-    \sa contains functionality that can be used to transfer data from one subnet to another. In particular, consider the following case involving a smart contract.%
-    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \nameAbbr agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
-    Smart contract $\textit{SmCt}$ emits an event~$e$ that contains $\textit{data}$ which is desired to reach the destination~\textit{dest} in a different subnet.
-    The \postoffice specifies the methods and the state locations that are used by this service.
+%    \item Inter-subnet transactions service (denoted \postoffice). 
+%    \sa contains functionality that can be used to transfer data from one subnet to another. In particular, consider the following case involving a smart contract.%
+%    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \nameAbbr agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
+%    Smart contract $\textit{SmCt}$ emits an event~$e$ that contains $\textit{data}$ which is desired to reach the destination~\textit{dest} in a different subnet.
+%    The \postoffice specifies the methods and the state locations that are used by this service.
 \end{itemize}
-Recall that \sa lives at the parent \smr. However, some of the objects that are represented in \sa are modified in the child subnet (e.g., accounting data). Therefore, such object are likely to have a representation in the child \smr as well.
-Moreover, the representation in the child \smr may differ from those in~\sa. This is due to \sa being less frequently updated (it is part of the parent \smr state). The representations are periodically synchronized, e.g., at a checkpoint event. \Cref{fig:interfaces} illustrates the components and their interfaces.
+Recall that \sa lives at the parent \smr. However, some of the objects that are represented in \sa are modified in the child subnet (e.g., accounting data). Therefore, such objects are likely to have a representation in the child \smr as well.
+Moreover, the representation in the child \smr may differ from those in~\sa. This is due to \sa being less frequently updated (it is part of the parent \smr state). The representations are periodically synchronized, e.g., at a checkpoint event. \Cref{fig:interfaces} illustrates the components and their interfaces.\\
+
 
 % We remark that all of the above are likely to have representations in the child \smr as well. Moreover, the representation in the child \smr may differ from those in~\sa. This is due to \sa being less frequently updated (it is part of the parent \smr state). The representations are periodically synchronized, e.g., at a checkpoint event. \Cref{fig:interfaces} illustrates the components and their interfaces.
 \begin{figure}[h]
      \centering
      \includegraphics[width=0.75\textwidth]{compsintfs}
-     \caption{The basic components and their interfaces.}
+     \caption{The basic components and their interfaces.\guy{ALEX, please add a fig for \gw and move the post-office from the \sa to \gw.}}
      \label{fig:interfaces}
  \end{figure}
+
+
+\T{The state of \gw includes:}
+\begin{itemize}
+    \item Parent's finality verification. A method to verify that a state/\tx is final in the parent subnet. For this, we will use the function \gw.\verifyPfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the parent subnet and False otherwise. This function must only depend on its inputs (and perhaps some internal state of~\gw).
+    \item Inter-subnet transactions service (denoted \postoffice). 
+    \gw contains a registry of subnets and a functionality that can be used to transfer data from one subnet to another. 
+    The \postoffice specifies the methods and the state locations that are used for these services.
+    In particular, consider the following case involving a smart contract.%
+    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \nameAbbr agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
+    Smart contract $\textit{SmCt}$ emits an event~$e$ that contains $\textit{data}$ which is desired to reach the destination~\textit{dest} in a different subnet.
+\end{itemize}
+ 
+ 
+ 
