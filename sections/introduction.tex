@@ -32,23 +32,23 @@ E.g., a chess player may be able to win some money in a chess tournament and lat
 In such a case, few transactions involve both applications (e.g., paying the tournament registration fee and withdrawing the prize money).
 The rest (e.g., the individual chess moves) are confined to the chess application and can thus be performed much faster and much cheaper (imagine playing chess by posting each move on Bitcoin for comparison).
 
-\nameFull (\nameAbbr) is a system that enables the deployment of heterogeneous applications on heterogeneous underlying SMR/blockchain platforms, while still allowing them to interact in a secure way.
-The basic idea behind \nameAbbr is dynamically deploying separate, loosely coupled SMR/blockchain systems (that we call \emph{subnets}) to host different (sets of) applications.
+\ipcFull (\ipc) is a system that enables the deployment of heterogeneous applications on heterogeneous underlying SMR/blockchain platforms, while still allowing them to interact in a secure way.
+The basic idea behind \ipc is dynamically deploying separate, loosely coupled SMR/blockchain systems (that we call \emph{subnets}) to host different (sets of) applications.
 Each subnet runs its own consensus protocol and maintains its own ordered transaction log.
 
-\nameAbbr is organized in a hierarchical fashion, where each subnet, except for one that we call the \emph{rootnet}, is associated with exactly one other subnet (called its \emph{parent}).
+\ipc is organized in a hierarchical fashion, where each subnet, except for one that we call the \emph{rootnet}, is associated with exactly one other subnet (called its \emph{parent}).
 Conversely, one parent can have arbitrarily many subnets (called \emph{children}) associated with it.
 
 This tree of subnets expresses a hierarchy of trust.
 All components of a subnet and all users using it are assumed to fully trust their parent and regard it as the ultimate source of truth.
 Note that, in general, trust in all components of the parent subnet is not required, but the parent system as a whole is always assumed to be correct (for some subnet-specific definition of correctness) by its child.
 
-To facilitate the interaction between different subnets, \nameAbbr provides mechanisms for communication between them.
+To facilitate the interaction between different subnets, \ipc provides mechanisms for communication between them.
 In particular:
 \begin{enumerate}
-    \item Assuming a common global notion of money (assets / tokens / ...) and accounts that can hold them, \nameAbbr also defines how money is moved between accounts in different subnets.\guy{Globality is unnecessary. We rely on a parent--child common currency. One may create a new token inside a child and use this new token in the grandchild while making all child--grandchild monetary interactions based on that token.}
+    \item Assuming a common global notion of money (assets / tokens / ...) and accounts that can hold them, \ipc also defines how money is moved between accounts in different subnets.\guy{Globality is unnecessary. We rely on a parent--child common currency. One may create a new token inside a child and use this new token in the grandchild while making all child--grandchild monetary interactions based on that token.}
     \item We define the notion of a \emph{checkpoint} as a snapshot of the state of a subnet after having processed a certain sequence of transactions.
-    \nameAbbr enables child subnets to place references to their checkpoints inside the state of their parents.
+    \ipc enables child subnets to place references to their checkpoints inside the state of their parents.
 \end{enumerate}
 
 The operating model described above is simple but powerful.
@@ -62,7 +62,7 @@ In particular, it enables
     \item \matej{Explain each item better. Any more items?}
 \end{itemize}
 
-In the rest of this document, we describe \nameAbbr in detail.
+In the rest of this document, we describe \ipc in detail.
 In \cref{sec:model} we define the system model and introduce the necessary terminology.
-\Cref{sec:components} describes the main components of \nameAbbr and their interfaces.
+\Cref{sec:components} describes the main components of \ipc and their interfaces.
 \matej{\todo{Finish this when sections are written.}}

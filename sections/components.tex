@@ -5,25 +5,23 @@
  %   - Subnet actor
  \section{Components and their Interfaces}
  \label{sec:components}
-We separate the software needed to run \nameAbbr into three processes and two \dapps:
+We separate the software needed to run \ipc into three processes and two \dapps:
 
 \matej{\todo{Express those components and their interfaces also in pseudocode.}}
 \begin{enumerate}
-    \item \textbf{\nameAbbr agent:} The software that is in charge of the interactions between the two blockchains. This includes, for example, observers for the parent and child subnets. (Note that it is a process and not a smart contract). The \nameAbbr agent is a piece of software that mediates the interactions between the child and parent \smr software modules.    
-    \item \textbf{Parent \smr replica:} The software that runs the parent blockchain. Note that this module also entails the interaction with the \nameAbbr smart contract~\sa, which is maintained at the parent subnet. Any update that the parent process performs on \sa is notified to the \nameAbbr agent.
-    \item \textbf{Child \smr replica:} The software that runs the child blockchain. Note that some of the rules the child blockchain must satisfy are listed in~\sa. Any output operation (withdraw, checkpoint) is notified to the parent process through the \nameAbbr agent. 
+    \item \textbf{\ipc agent:} The software that is in charge of the interactions between the two blockchains. This includes, for example, observers for the parent and child subnets. (Note that it is a process and not a smart contract). The \ipc agent is a piece of software that mediates the interactions between the child and parent \smr software modules.    
+    \item \textbf{Parent \smr replica:} The software that runs the parent blockchain. Note that this module also entails the interaction with the \ipc smart contract~\sa, which is maintained at the parent subnet. Any update that the parent process performs on \sa is notified to the \ipc agent.
+    \item \textbf{Child \smr replica:} The software that runs the child blockchain. Note that some of the rules the child blockchain must satisfy are listed in~\sa. Any output operation (withdraw, checkpoint) is notified to the parent process through the \ipc agent. 
 %    \item \textbf{IPC smart contract / subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
-\end{enumerate}
-\begin{enumerate}
-	\item \textbf{IPC subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
-	\item \textbf{IPC coordinator/gateway actor (\gw):} a smart contract that exists in every subnet in the \nameAbbr hierarchy and contains methods facilitating inter-subnet operations.	
+    \item \textbf{IPC subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
+    \item \textbf{IPC coordinator/gateway actor (\gw):} a smart contract that exists in every subnet in the \ipc hierarchy and contains methods facilitating inter-subnet operations.	
 \end{enumerate}
 
 
-We now define minimal interfaces between the different modules that enable the correct operation of an \nameFull system.
-A guiding principle in the interface design is to minimize changes to the \smr codebase; therefore, most extra logic of the \nameAbbr will be added into the \nameAbbr agent and the smart contracts \sa~and~\gw. Doing so should facilitate the deployment of \nameAbbr with new \smr protocols by not requiring a developer familiar with \nameAbbr to be an expert on \smr: some understanding is still needed to optimize the agent's implementation, but the \smr code would remain portable.
+We now define minimal interfaces between the different modules that enable the correct operation of an \ipcFull system.
+A guiding principle in the interface design is to minimize changes to the \smr codebase; therefore, most extra logic of the \ipc will be added into the \ipc agent and the smart contracts \sa~and~\gw. Doing so should facilitate the deployment of \ipc with new \smr protocols by not requiring a developer familiar with \ipc to be an expert on \smr: some understanding is still needed to optimize the agent's implementation, but the \smr code would remain portable.
 
-We require four interfaces: (i) \nameAbbr agent --- parent \smr, (ii) \nameAbbr agent --- child \smr, (iii) parent \smr --- \sa, and (iv) any \smr --- \gw. Both (i) and (ii) can comprise of only:
+We require four interfaces: (i) \ipc agent --- parent \smr, (ii) \ipc agent --- child \smr, (iii) parent \smr --- \sa, and (iv) any \smr --- \gw. Both (i) and (ii) can comprise of only:
 \begin{enumerate}
     \item Agent submits a transaction~\tx to the \smr process.%
     \footnote{As part of the notification defined below, it could be that after submitting \tx, until the \smr process returns \textit{complete} (perhaps with a finality parameter) or \textit{declined}, \tx is considered \textit{pending}.}
@@ -55,7 +53,7 @@ The interface between an \smr and~\sa or~\gw is based on the execution engine of
     in the child subnet. For this, we will use the function \sa.\verifyGfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the child subnet and False otherwise. This function must only depend on its inputs and the internal state of~\sa. For example, \prf is a threshold signature that can be verified against the set of validators in~\sa.
 \end{itemize}
 %
-The above suffice for an \nameFull system with a minimal inter-subnet functionality of users' asset-transfer, and a general \smr per subnet. We continue with the additional state required for enhanced functionalities.
+The above suffice for an \ipcFull system with a minimal inter-subnet functionality of users' asset-transfer, and a general \smr per subnet. We continue with the additional state required for enhanced functionalities.
 %
 \begin{itemize}
     \item Slashing functionality.
@@ -72,7 +70,7 @@ The above suffice for an \nameFull system with a minimal inter-subnet functional
     %
 %    \item Inter-subnet transactions service (denoted \postoffice). 
 %    \sa contains functionality that can be used to transfer data from one subnet to another. In particular, consider the following case involving a smart contract.%
-%    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \nameAbbr agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
+%    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \ipc agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
 %    Smart contract $\textit{SmCt}$ emits an event~$e$ that contains $\textit{data}$ which is desired to reach the destination~\textit{dest} in a different subnet.
 %    The \postoffice specifies the methods and the state locations that are used by this service.
 \end{itemize}
@@ -96,7 +94,7 @@ Moreover, the representation in the child \smr may differ from those in~\sa. Thi
     \gw contains a registry of subnets and a functionality that can be used to transfer data from one subnet to another. 
     The \postoffice specifies the methods and the state locations that are used for these services.
     In particular, consider the following case involving a smart contract.%
-    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \nameAbbr agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
+    \footnote{When inter-subnet data transfer happens between users (Externally Owned Accounts --- \eoa --- in Ethereum's jargon), they can actively participate in the propagation via the \ipc agent that communicates with both the parent and child subnets. Smart contracts, on the other hand, do not have that power and, therefore, cannot communicate inter-subnets as efficiently as users (\eoa).}
     Smart contract $\textit{SmCt}$ emits an event~$e$ that contains $\textit{data}$ which is desired to reach the destination~\textit{dest} in a different subnet.
 \end{itemize}
  

@@ -1,14 +1,13 @@
 \section{Model}
 \label{sec:model}
 
-The vocabulary used throughout this document is summarized in the IPC Glossary, currently available at
-\href{https://docs.google.com/document/d/15pA7ahjeA-HYOl8Pxj0n6PxEswYlRVrZ112MJuRR0fY/edit?usp=sharing}{https://docs.google.com/document/d/15pA7ahjeA-HYOl8Pxj0n6PxEswYlRVrZ112MJuRR0fY/edit?usp=sharing}
+The vocabulary used throughout this document is summarized in the IPC Glossary \cite{glossary}.
 
 \matej{When the Glossary becomes stable, we can maybe add it as an appendix to this document.}
 
 \subsection{Computation and failure model}
 
-We model \nameAbbr as a distributed (``message-passing") system consisting of \emph{processes} that communicate by exchanging \emph{messages}%
+We model \ipc as a distributed (``message-passing") system consisting of \emph{processes} that communicate by exchanging \emph{messages}%
 \footnote{Network messages are not to be confused with Filecoin actor messages, that this document refers to as transactions.}
 over a network. 
 In practice, a process is a program running on a computer, having some state, and reacting to external events and messages received over a communication network.
@@ -43,7 +42,7 @@ A non-benign process is \emph{malicious}.
 
 In general, faulty processes can be malicious (Byzantine), i.e., we do not put any restrictions on their behavior, except being computationally bounded and thus not being able to subvert standard cryptographic primitives, such as forging signatures or inverting secure hash functions.
 If the implementation of some component in our design requires additional assumptions on the behavior of faulty processes, they will be stated explicitly.
-% We do not make a general statement about the fault tolerance of \nameAbbr as a system, as to how many faulty processes the system can sustain.
+% We do not make a general statement about the fault tolerance of \ipc as a system, as to how many faulty processes the system can sustain.
 % This depends on the final implementation of its components.
 
 We use the term \emph{participant} to describe an entity participating in the system that controls one or more processes.
@@ -51,13 +50,13 @@ All processes controlled by one participant trust each other, i.e., can assume e
 For example, a participant in the child subnet will probably run multiple processes:
 one for participating in the child subnet's protocol (child replica),
 one for participating in the parent subnet (parent replica),
-and one process that processes the information from the above two and submits transactions accordingly (\nameAbbr agent).
-We precisely define the replicas and the \nameAbbr agent (all of them being processes) in \Cref{sec:components,sec:smr}.
-The \nameAbbr agent of a participant always assumes that the information it receives from "its own" child replica is correct.
-However, messages received from another participant's replica or \nameAbbr agent are seen as potentially malicious.
+and one process that processes the information from the above two and submits transactions accordingly (\ipc agent).
+We precisely define the replicas and the \ipc agent (all of them being processes) in \Cref{sec:components,sec:smr}.
+The \ipc agent of a participant always assumes that the information it receives from "its own" child replica is correct.
+However, messages received from another participant's replica or \ipc agent are seen as potentially malicious.
 
-The synchrony assumptions may vary between different components of \nameAbbr.
-We thus state those assumptions whenever necessary, when describing concrete implementations of \nameAbbr components.
+The synchrony assumptions may vary between different components of \ipc.
+We thus state those assumptions whenever necessary, when describing concrete implementations of \ipc components.
 
 \subsection{State machine replication and \dapps}
 \label{sec:smr}
@@ -117,7 +116,7 @@ The former usually represent OS-level processes running on some physical machine
 the latter are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
 While a process can submit a transaction to an SMR system, a \dapp cannot.
 
-In this document, we mostly focus on the interaction between a single parent SMR system (consisting of parent processes) and a single child SMR system (consisting of child processes), as this is the most important building block of \nameAbbr.
+In this document, we mostly focus on the interaction between a single parent SMR system (consisting of parent processes) and a single child SMR system (consisting of child processes), as this is the most important building block of \ipc.
 In the next section, we describe the components involved in this interaction and their interfaces.
 
 \subsection{Money}
