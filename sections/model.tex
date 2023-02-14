@@ -2,6 +2,7 @@
 \label{sec:model}
 
 The vocabulary used throughout this document is summarized in the IPC Glossary \cite{glossary}.
+The reader is encouraged to read the IPC Glossary before continuing.
 
 \matej{When the Glossary becomes stable, we can maybe add it as an appendix to this document.}
 
@@ -121,5 +122,10 @@ In the next section, we describe the components involved in this interaction and
 
 \subsection{Money}
 
-We assume that all \dapps have a notion of \emph{money}, that they can transfer among each other within one SMR system.
-Each end user of the SMR system is assumed to have a personal wallet and a corresponding account in some subnet
+For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{money} common to both subnets.%
+\footnote{One can easily generalize the design to decouple the use of money between a parent and its child, but we stick with using the same kind of money in both subnets for simplicity.}
+Each end user of the SMR system is assumed to have a personal wallet and a corresponding account in some subnet.
+
+We also assume that the submission, ordering, and applications of transactions is associated with a monetary cost.
+Each SMR client submitting a transaction to a subnet is assumed to have an account in that subnet, from which this cost is deducted.
+If the funds are insufficient, the SMR system ignores the transaction.
