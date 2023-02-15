@@ -31,7 +31,7 @@ We separate the software needed to run \ipc into three processes and two \dapps:
     \item \textbf{Child \smr replica:} The software that runs the child blockchain. Note that some of the rules the child blockchain must satisfy are listed in~\sa. Any output operation (withdraw, checkpoint) is notified to the parent process through the \ipc agent. 
 %    \item \textbf{IPC smart contract / subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
     \item \textbf{IPC subnet actor (\sa):} The smart contract implementation that is running on the parent blockchain. It is invoked only through transactions that are included in the parent blockchain.
-    \item \textbf{IPC coordinator/gateway actor (\gw):} a smart contract that exists in every subnet in the \ipc hierarchy and contains methods facilitating inter-subnet operations.	
+    \item \textbf{IPC coordinator/gateway actor (\gw):} a smart contract that exists in every non-leaf subnet in the \ipc hierarchy and contains methods facilitating inter-subnet operations.	
 \end{enumerate}
 
 
@@ -68,9 +68,10 @@ The interface between an \smr and~\sa or~\gw is based on the execution engine of
     \item Finality verification. A method to Verify that a state/\tx is final%
     \footnote{Finality is an elusive concept that we do not take upon ourselves to define here. For simplicity, we assume finality in a Boolean manner, either \tx is final or it is not. This could easily be generalized to parameterized finality of the sort ``the probability of \tx persisting is at least~$x$."}
     in the child subnet. For this, we will use the function \sa.\verifyGfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the child subnet and False otherwise. This function must only depend on its inputs and the internal state of~\sa. For example, \prf is a threshold signature that can be verified against the set of validators in~\sa.
+  \item Parent's finality verification. A method to verify that a state/\tx is final in the parent subnet. For this, we will use the function \gw.\verifyPfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the parent subnet and False otherwise. This function must only depend on its inputs (and perhaps some internal state of~\gw). \arp{subnet specific, not necessarily the same method for all child subnets. Lives at the SA (needed for deposits but deposits should not depend on \gw)}
 \end{itemize}
 %
-The above suffice for an \ipcFull system with a minimal inter-subnet functionality of users' asset-transfer, and a general \smr per subnet. We continue with the additional state required for enhanced functionalities.
+The above suffices for an \ipcFull system with a minimal inter-subnet functionality of users' asset-transfer, and a general \smr per subnet. We continue with the additional state required for enhanced functionalities.
 %
 \begin{itemize}
     \item Slashing functionality.
@@ -99,14 +100,14 @@ Moreover, the representation in the child \smr may differ from those in~\sa. Thi
 \begin{figure}[h]
      \centering
      \includegraphics[width=0.75\textwidth]{compsintfs}
-     \caption{The basic components and their interfaces.\guy{ALEX, please add a fig for \gw and move the post-office from the \sa to \gw.}}
+     \caption{The basic components and their interfaces.}
      \label{fig:interfaces}
  \end{figure}
 
 
 \T{The state of \gw includes:}
 \begin{itemize}
-    \item Parent's finality verification. A method to verify that a state/\tx is final in the parent subnet. For this, we will use the function \gw.\verifyPfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the parent subnet and False otherwise. This function must only depend on its inputs (and perhaps some internal state of~\gw).
+    \item Checkpoint data. The parent stores at the \gw each of the checkpoints from each direct child of it.
     \item Inter-subnet transactions service (denoted \postoffice). 
     \gw contains a registry of subnets and a functionality that can be used to transfer data from one subnet to another. 
     The \postoffice specifies the methods and the state locations that are used for these services.
