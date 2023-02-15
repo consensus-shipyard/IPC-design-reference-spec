@@ -171,6 +171,8 @@ A withdrawal is a transfer of funds from user $u_C$'s wallet in the child subnet
 % }
 \end{algorithm}
 \subsection{Enhanced Functionality}
+\label{enhancedFunc}
+\arp{From here below we need to add the gateway actor and refine the functionality, leave out till round of feedback for GW}
 We show here a list of desirable functionalities that build upon the basic withdrawals and deposits.
 \subsubsection{Checkpointing} A checkpoint contains a representation of the updated state of the child SMR system to be included in the parent SMR system. A checkpoint can be triggered by predefined events (i.e. periodically after a number of state updates, triggered by a specific user or set of users, etc.). As such, the checkpoint functionality may or may not be triggered by a user request on the child SMR. A checkpoint is performed as follows: 
 \begin{enumerate}
@@ -329,7 +331,7 @@ The \postoffice functionality is an inter-subnet transaction service. The main m
 \end{algorithm}
 \subsubsection{Atomic Execution}
 TODO Discuss in Lanzarote?
-\label{enhancedFunc}
+
 
 \subsection{Future}
 \label{sec:future}
