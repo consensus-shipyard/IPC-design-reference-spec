@@ -47,7 +47,7 @@ If the implementation of some component in our design requires additional assump
 % This depends on the final implementation of its components.
 
 We use the term \emph{participant} to describe an entity participating in the system that controls one or more processes.
-All processes controlled by one participant trust each other, i.e., can assume each other's correctness.
+All processes controlled by one participant are assumed to be in the same trust domain -- they trust each other, i.e., assume each other's correctness.
 For example, a participant in the child subnet will probably run multiple processes:
 one for participating in the child subnet's protocol (child replica),
 one for participating in the parent subnet (parent replica),
@@ -59,15 +59,17 @@ However, messages received from another participant's replica or \ipc agent are 
 The synchrony assumptions may vary between different components of \ipc.
 We thus state those assumptions whenever necessary, when describing concrete implementations of \ipc components.
 
-\subsection{State machine replication and \dapps}
+\subsection{State machine replication (SMR) and \dapps}
 \label{sec:smr}
 
+\paragraph{SMR and replicated state.}
 A \emph{state machine replication (SMR) system}%
 \footnote{In this document, we use the terms ``SMR system" and ``blockchain" interchangeably.}
 is a system consisting of processes called \emph{replicas}, each of which locally stores a copy of (or at least has access to) \emph{replicated state}
 that it updates over time by applying a sequence of \emph{transactions} to it.
 Without specifying the details of it, we assume that any process can \emph{submit} a transaction to an SMR system (we call such a process an \emph{SMR client})
 and that this transaction will eventually be ordered and applied to the replicated state.
+We call an SMR system that is part of \ipc a \emph{subnet}.
 
 An SMR system guarantees to each correct replica that, after applying $n$ transactions to its local copy of the replicated state,
 the latter will be identical to any other correct replica’s copy of the replicated state after applying $n$ transactions.
@@ -82,6 +84,7 @@ useful for reasoning about transitions from one replicated state to another,
 happening at individual replicas by applying transactions (at different real times).
 When referring to a “current” replicated state, we mean the state resulting from the application of a certain number of transactions to the initial state.
 
+\paragraph{Smart contracts.}
 The replicated state of an SMR system can be logically subdivided into multiple \emph{\dapps} (a.k.a. actors in Filecoin).
 A \dapp is a portion of the replicated state with well-defined semantics.
 It defines the logic (e.g., expressed in a programming language, like Solidity in Ethereum)
@@ -117,12 +120,25 @@ The former usually represent OS-level processes running on some physical machine
 the latter are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
 While a process can submit a transaction to an SMR system, a \dapp cannot.
 
-In this document, we mostly focus on the interaction between a single parent SMR system (consisting of parent processes) and a single child SMR system (consisting of child processes), as this is the most important building block of \ipc.
-In the next section, we describe the components involved in this interaction and their interfaces.
+\paragraph{Interaction between subnets.}
+In \ipc, whole subnets need to interact, i.e., the replicated state of one subnet must react to (changes in) the replicated state of another subnet.
+As the replicated state of every subnet is distributed among its replicas and evolves independently of other subnets,
+we must establish a mechanism for interactions between the states of subnets.
+In particular, we must explicitly link the two replicated states of two subnets.
+More precisely, for any interaction between two subnets ($A$ and $B$), define block heights $h_A$ and $h_B$,
+such that $A$'s replicated state at height $h_A$ considers $B$'s replicated state to have evolved exactly until $h_B$.
+
+\paragraph{\PofsFull.}To this end, we define a \emph{\pofFull (\pof)} to be data that proves that an SMR system definitively reached a certain replicated state.
+Regardless of the SMR system's ordering protocol's approach to finality (e.g., immediate finality for classic BFT protocols, or probabilistic finality in PoW-based systems),
+a \pof convinces the the proof's verifier that the replicated state the \pof refers to will not be rolled back.
+For example, for a BFT-based SMR system, a quorum of signatures produced by its replicas can constitute a \pof.
+We denote by \emph{\pof(tx)} the proof that an SMR system reached a state in which transaction \emph{tx} already has been applied.
+
+
 
 \subsection{Money}
 
-For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{money} common to both subnets.%
+For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{money} (measured in \emph{coins}) common to both subnets.%
 \footnote{One can easily generalize the design to decouple the use of money between a parent and its child, but we stick with using the same kind of money in both subnets for simplicity.}
 Each end user of the SMR system is assumed to have a personal wallet and a corresponding account in some subnet.
 

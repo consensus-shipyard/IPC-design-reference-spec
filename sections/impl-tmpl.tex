@@ -8,3 +8,7 @@
  \section{An Instance of IPC}
  \label{sec:impl-tmpl}
  Here we describe the particular choices implemented by the Consensus Lab team.
+
+The current implementation considers Filecoin as the root subnet\guy{I wrote it but I'm not sure this is the case...}, and Trantor as child subnets. For our interest it is important to note that Trantor is a BFT consensus protocol with immediate finality, and Filecoin is a longest chain style protocol with probabilistic finality. Therefore, as a \prf that a child subnet finalized a state we use a multisig on that state, the multisig must correspond to more than 2/3 of the child's validators voting rights as reflected by \sa at the time.%
+\footnote{A next step in the implementation road-map is to offer a threshold signature mechanism instead of using a multisig. For now, multisigs serve the purpose of an MVP implementation.}
+To verify the finality of a state at the parent, we use the fact that a participant has view in to a version of the parent blockchain (through its local parent replica process). In this case, \prf contains the block height~$h$ (and pointer to that block) at the parent subnet. A child replica then asserts with its parent that the state is final by checking with its local version of the parent blockchain at height~$h$. If the the local version at the parent replica did not reach height~$h$ yet, the child replica considers the state non-final/non-valid currently and checks again when the parent reaches height~$h$.
