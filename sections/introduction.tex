@@ -46,7 +46,7 @@ Note that, in general, trust in all components of the parent subnet is not requi
 To facilitate the interaction between different subnets, \ipc provides mechanisms for communication between them.
 In particular:
 \begin{enumerate}
-    \item Assuming a common global notion of money (assets / tokens / ...) and accounts that can hold them, \ipc also defines how money is moved between accounts in different subnets.\guy{Globality is unnecessary. We rely on a parent--child common currency. One may create a new token inside a child and use this new token in the grandchild while making all child--grandchild monetary interactions based on that token.}
+    \item Assuming a common notion of money (assets / tokens / ...) between a parent and a child and accounts that can hold them, \ipc also defines how money is moved between accounts in different subnets.
     \item We define the notion of a \emph{checkpoint} as a snapshot of the state of a subnet after having processed a certain sequence of transactions.
     \ipc enables child subnets to place references to their checkpoints inside the state of their parents.
 \end{enumerate}
@@ -56,13 +56,11 @@ In particular, it enables
 \begin{itemize}
     \item Scaling, by using multiple blockchain/SMR platforms to host a large number of applications.
     \item Optimization of blockchain platforms for applications running on top of them.
-    \item Governance of a child subnet by its parent, by way of the parent serving as the source of truth for the child (and, for example, maintaining the child's configuration).
-    \matej{Go in more detail already here and mention PoS, collateral, slashing, firewall property, etc...?}
+    \item Governance of a child subnet by its parent, by way of the parent serving as the source of truth for the child (and, for example, maintaining the child's configuration, validator set, and other subnet-specific data).
     \item ``Inheriting" by the subnet of some of its parent's security and trustworthiness, by periodically anchoring its state (through checkpoints) in the state of the parent.
-    \item \matej{Explain each item better. Any more items?}
 \end{itemize}
 
 In the rest of this document, we describe \ipc in detail.
 In \cref{sec:model} we define the system model and introduce the necessary terminology.
 \Cref{sec:components} describes the main components of \ipc and their interfaces.
-\matej{\todo{Finish this when sections are written.}}
+\TODO{Finish this when sections are written.}

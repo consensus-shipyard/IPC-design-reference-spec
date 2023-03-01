@@ -1,10 +1,8 @@
 \section{Model}
 \label{sec:model}
 
-The vocabulary used throughout this document is summarized in the IPC Glossary \cite{glossary}.
-The reader is encouraged to read the IPC Glossary before continuing.
-
-\matej{When the Glossary becomes stable, we can maybe add it as an appendix to this document.}
+The vocabulary used throughout this document is summarized in Appendix~\ref{sec:gls}. The reader is encouraged to read Appendix~\ref{sec:gls} before continuing.
+\TODO{Go through and address remaining Marko's comments of this section} 
 
 \subsection{Computation and failure model}
 
@@ -28,7 +26,7 @@ We describe processes as exemplified in \Cref{alg:process-definition}.
      \UponKW{event(params...)}{
        \tcp{Logic to execute atomically}
      }
-     \UponKW{message(params...)}{
+     \UponKW{event(params...)}{
        \tcp{Logic to execute atomically}
      }
      ...
@@ -98,27 +96,31 @@ Its associated logic reacts to \emph{events} triggered by (1) the application of
 \caption{\dapp definition}\label{alg:dapp-definition}
   \DontPrintSemicolon
   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
+  \SetKwFor{UponKW}{}{}{fintq}
   \SetKw{Trigger}{trigger}
   variable = initial value\\
   variable = initial value\\
   ...\\
   \Component{\dapp name}{
-     \UponKW{event(params...)}{
+     \UponKW{Function(params...)}{
        \tcp{Logic to execute}
-       \Trigger event(params...)
      }
-     \UponKW{tx(params...)}{
+     \UponKW{Function(params...)}{
        \tcp{Logic to execute}
-       \Trigger event(params...)
      }
-     ...
-}
+  }
 \end{algorithm}
-Note that, despite using similar syntax to describe processes and \dapps, those are fundamentally different.
-The former usually represent OS-level processes running on some physical machine,
-the latter are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
+Note that a process usually represent OS-level processes running on some physical machine executing a program,
+\dapps are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
 While a process can submit a transaction to an SMR system, a \dapp cannot.
+
+
+\add{
+\paragraph{Naming.}
+We assign each subnet a name that is unique among all the children of the same parent.
+Similarly to the notation used for absolute paths in a file system, the name of a child subnet is always prefixed by the name of its parent.
+For example, subnets $P/C$ and $P/D$ would both be children of subnet $P$.
+}
 
 \paragraph{Interaction between subnets.}
 In \ipc, whole subnets need to interact, i.e., the replicated state of one subnet must react to (changes in) the replicated state of another subnet.
@@ -128,20 +130,19 @@ In particular, we must explicitly link the two replicated states of two subnets.
 More precisely, for any interaction between two subnets ($A$ and $B$), define block heights $h_A$ and $h_B$,
 such that $A$'s replicated state at height $h_A$ considers $B$'s replicated state to have evolved exactly until $h_B$.
 
-\paragraph{\PofsFull.}To this end, we define a \emph{\pofFull (\pof)} to be data that proves that an SMR system definitively reached a certain replicated state.
+\paragraph{\pofsFull.}\del{To this end}\add{To enable interaction between subnets}, we define a \emph{\pofFull (\pof)} to be data that proves that an SMR system definitively reached a certain replicated state.
 Regardless of the SMR system's ordering protocol's approach to finality (e.g., immediate finality for classic BFT protocols, or probabilistic finality in PoW-based systems),
 a \pof convinces the the proof's verifier that the replicated state the \pof refers to will not be rolled back.
 For example, for a BFT-based SMR system, a quorum of signatures produced by its replicas can constitute a \pof.
 We denote by \emph{\pof(tx)} the proof that an SMR system reached a state in which transaction \emph{tx} already has been applied.
 
 
+\subsection{Representing value}
 
-\subsection{Money}
-
-For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{money} (measured in \emph{coins}) common to both subnets.%
-\footnote{One can easily generalize the design to decouple the use of money between a parent and its child, but we stick with using the same kind of money in both subnets for simplicity.}
+For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{value} (measured in \emph{coins}) common to both subnets.%
+\footnote{One can easily generalize the design to decouple the use of value between a parent and its child, but we stick with using the same kind of value in both subnets for simplicity.}
 Each end user of the SMR system is assumed to have a personal wallet and a corresponding account in some subnet.
 
-We also assume that the submission, ordering, and applications of transactions is associated with a monetary cost.
+We also assume that the submission, ordering, and applications of transactions is associated with a va;uable cost.
 Each SMR client submitting a transaction to a subnet is assumed to have an account in that subnet, from which this cost is deducted.
 If the funds are insufficient, the SMR system ignores the transaction.

@@ -18,18 +18,6 @@
 % \newreptheorem{definition}{Definition}
 % \newreptheorem{lemma}{Lemma}
 
-\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
-\textcolor{purple}{#1}]}}
-\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
-\textcolor{teal}{#1}]}}
-\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
-\textcolor{orange}{#1}]}}
-\newcommand{\blue}[1]{{\color{blue}{#1}}}
-\newcommand{\red}[1]{{\color{red}{#1}}}
-\newcommand{\out}[1]{{\red{\sout{#1}}}}
-
-
-\newcommand{\ignore}[1]{}
 \newcommand{\alg}{$\mathcal A$}
 \newcommand{\act}{\alpha}
 \newcommand{\wrt}{w.r.t.\/}
@@ -38,7 +26,6 @@
 \newcommand{\PN}{\mathcal{PN}}
 \newcommand{\parent}[1]{\texttt{parent}(#1)}
 \newcommand{\actor}{\textsf{Actor}}
-\newcommand{\hc}{HC}
 \newcommand{\user}{u}
 \newcommand{\fil}{\textit{amt}\xspace}
 \newcommand{\tx}{\textit{tx}\xspace}
@@ -52,27 +39,65 @@
 \newcommand{\pUp}{\textsc{PropUp}}
 \newcommand{\pDn}{\textsc{PropDn}}
 \newcommand{\pHr}{\textsc{PropHere}}
-\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
-\newcommand{\ipcFull}{Interplanetary Consensus\xspace}
-\newcommand{\ipc}{IPC\xspace}
-\newcommand{\sa}{\textit{SA}\xspace}
-\newcommand{\gw}{\textit{GWA}\xspace}
 \newcommand{\smr}{SMR\xspace}
 \newcommand{\gov}{\textit{gov-acc}\xspace}
 \newcommand{\pom}{\textit{PoM}\xspace} % Proof of Misbehavior
 \newcommand{\verifyGfinal}[2]{\textit{verifyGlobalFinality}({#1},{#2})\xspace} % verify the global finality of (#1-state/tx) in the child subnet with assitance of (#2-proof).
 \newcommand{\verifyPfinal}[2]{\textit{verifyParentFinality}({#1},{#2})\xspace} % verify the global finality of (#1-state/tx) in the parent subnet with assitance of (#2-proof).
+\newcommand{\ssc}{\textit{ShouldSubmitCheckpoint}\xspace}
 \newcommand{\prf}{\textit{PoF}\xspace}
 \newcommand{\data}{\textit{data}\xspace}
 \newcommand{\dest}{\textit{dest}\xspace}
 \newcommand{\src}{\textit{src}\xspace}
-\newcommand{\postoffice}{\textsc{post-office}\xspace}
+\newcommand{\postoffice}{postBox\xspace}
 \newcommand{\eoa}{\textit{EOA}\xspace}
 \newcommand{\propagate}{\textit{propagate}}
+\newcommand\T[1]{\noindent\textbf{#1}}
+\newcommand{\impl}{IPC reference implementation\xspace} % name it differently?
+
+% ======================================================================
+% Editing / collaboration
+% ======================================================================
+
+% Some text colors
+\newcommand{\blue}[1]{{\color{blue}{#1}}}
+\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\out}[1]{{\red{\sout{#1}}}}
+
+% Show diff (exactly one of this and the following pair of commands must be commented)
+% \newcommand{\add}[1]{\textcolor{blue}{#1}}
+% \newcommand{\del}[1]{\textcolor{gray}{#1}}
+
+% Preview changes (exactly one of this and the previous pair of commands must be commented)
+\newcommand{\add}[1]{#1}
+\newcommand{\del}[1]{}
+
+\newcommand{\replace}[2]{\del{#1}\add{#2}}
+
+% Rendered comments
+\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
+\textcolor{purple}{#1}]}}
+\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
+\textcolor{teal}{#1}]}}
+\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
+\textcolor{brown}{#1}]}}
+\newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
+\textcolor{red}{#1}]}}
+\newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
+\textcolor{gray}{#1}]}}
+
+\newcommand{\ignore}[1]{}
+
+% ======================================================================
+% Macros for names to use in the text
+% ======================================================================
+
+\newcommand{\ipcFull}{Interplanetary Consensus\xspace}
+\newcommand{\ipc}{IPC\xspace}
+\newcommand{\sa}{\textit{SA}\xspace}
+\newcommand{\gw}{\textit{GWA}\xspace}
 \newcommand{\dapp}{smart contract\xspace}
 \newcommand{\dapps}{smart contracts\xspace}
-\newcommand\T[1]{\noindent\textbf{#1}}
-\newcommand{\pofFull}{proof of finality\xspace}
-\newcommand{\pofsFull}{proofs of finality\xspace}
-\newcommand{\PofsFull}{Proofs of finality\xspace}
+\newcommand{\pofFull}{Proof of Finality\xspace}
+\newcommand{\pofsFull}{Proofs of Finality\xspace}
 \newcommand{\pof}{PoF\xspace}
