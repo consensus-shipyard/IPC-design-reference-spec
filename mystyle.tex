@@ -23,7 +23,9 @@
 \newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
 \textcolor{teal}{#1}]}}
 \newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
-\textcolor{orange}{#1}]}}
+\textcolor{brown}{#1}]}}
+\newcommand{\TODO}[1]{[{\textbf{TODO:}} {\footnotesize
+\textcolor{gray}{#1}]}}
 \newcommand{\blue}[1]{{\color{blue}{#1}}}
 \newcommand{\red}[1]{{\color{red}{#1}}}
 \newcommand{\out}[1]{{\red{\sout{#1}}}}
@@ -62,6 +64,7 @@
 \newcommand{\pom}{\textit{PoM}\xspace} % Proof of Misbehavior
 \newcommand{\verifyGfinal}[2]{\textit{verifyGlobalFinality}({#1},{#2})\xspace} % verify the global finality of (#1-state/tx) in the child subnet with assitance of (#2-proof).
 \newcommand{\verifyPfinal}[2]{\textit{verifyParentFinality}({#1},{#2})\xspace} % verify the global finality of (#1-state/tx) in the parent subnet with assitance of (#2-proof).
+\newcommand{\ssc}{\textit{ShouldSubmitCheckpoint}\xspace}
 \newcommand{\prf}{\textit{PoF}\xspace}
 \newcommand{\data}{\textit{data}\xspace}
 \newcommand{\dest}{\textit{dest}\xspace}
@@ -76,3 +79,15 @@
 \newcommand{\pofsFull}{proofs of finality\xspace}
 \newcommand{\PofsFull}{Proofs of finality\xspace}
 \newcommand{\pof}{PoF\xspace}
+\newcommand{\impl}{IPC reference implementation\xspace} % name it differently?
+
+% Show diff
+% \newcommand{\add}[1]{\textcolor{blue}{#1}}
+% \newcommand{\del}[1]{\textcolor{gray}{#1}}
+
+% Preview changes
+\newcommand{\add}[1]{#1}
+\newcommand{\del}[1]{}
+
+
+\newcommand{\replace}[2]{\del{#1}\add{#2}}
