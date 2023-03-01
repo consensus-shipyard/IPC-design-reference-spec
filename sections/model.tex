@@ -130,7 +130,7 @@ In particular, we must explicitly link the two replicated states of two subnets.
 More precisely, for any interaction between two subnets ($A$ and $B$), define block heights $h_A$ and $h_B$,
 such that $A$'s replicated state at height $h_A$ considers $B$'s replicated state to have evolved exactly until $h_B$.
 
-\paragraph{\PofsFull.}\del{To this end}\add{To enable interaction between subnets}, we define a \emph{\pofFull (\pof)} to be data that proves that an SMR system definitively reached a certain replicated state.
+\paragraph{\pofsFull.}\del{To this end}\add{To enable interaction between subnets}, we define a \emph{\pofFull (\pof)} to be data that proves that an SMR system definitively reached a certain replicated state.
 Regardless of the SMR system's ordering protocol's approach to finality (e.g., immediate finality for classic BFT protocols, or probabilistic finality in PoW-based systems),
 a \pof convinces the the proof's verifier that the replicated state the \pof refers to will not be rolled back.
 For example, for a BFT-based SMR system, a quorum of signatures produced by its replicas can constitute a \pof.

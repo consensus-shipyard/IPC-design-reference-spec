@@ -1,0 +1,43 @@
+\section{Incentives}
+\label{sec:incentives}
+
+In the previous sections, we defined the components of an IPC system and their roles in implementing the IPC functionality.
+Most of the functionality involved submitting transactions to subnets by an IPC Agent.
+However, in general, submitting transactions (and their subsequent execution by the subnet) is associated with a \emph{cost} (often referred to as "gas").
+We refer to the cost associated with a transaction as the \emph{transaction fee}, measured in coins.
+An IPC Agent might need an incentive to participate in such a costly protocol.
+
+Moreover, the replicas of a subnet might need to cooperate with IPC agents during the construction of \pofsFull.
+Unless non-cooperation can be detected and penalized (see \Cref{sec:slashing}), subnet replicas also might need an incentive to participate in the creation of a \pof.
+
+This section describes mechanisms that can be used to incentivize participants running IPC agents
+to submit the required transactions and pay the corresponding transaction fees,
+as well as replicas to participate in \pof creation.
+It is \emph{not} the goal of this section to provide a game-theoretic model of viable incentive mechanisms and their analyses.
+We merely present tools for implementing such mechanisms, to be used by those who design and implement concrete instances of IPC subnets.
+
+
+\subsection{Accounts}
+
+We assume that each IPC agent has accounts in both the parent and the child subnet
+and that the fees for the transaction the IPC agent submits to the respective subnets are deducted from the respective accounts.
+If the balance of the account is insufficient to pay the transaction fee, the transaction is considered invalid and is ignored by the subnet.
+We further assume that smart contracts (the \sa and the \gw) can also hold funds and that their logic can distribute those funds among other accounts on their respective subnets.
+
+\paragraph{Gateway Actor.}
+The Gateway actor accumulates from its own subnet. For example, the subnet's implementation can require a certain part of each transaction fee to be sent to the Gateway Actor.
+
+\paragraph{Subnet Actor.}
+The Subnet Actor accummulates funds from the subnet it governs.
+There are several ways how one can imagine the \sa to be funded,
+for example, by withdrawals initiated by the child subnet's \gw,
+or by periodicaly charging the child's replicas for being included in the replica set.
+
+\subsection{Refunds and Rewards}
+
+An IPC Agent submitting a transaction that invokes a function of the \gw or the \sa can receive a refund of the transaction fee directly from the invoked smart contract,
+according to arbitrary rules defined in the smart contract's logic.
+For example, such a rule could be to credit the submitting IPC Actor's account with the amount of the transaction fee, augmented by a fixed (or proportional) reward.
+
+To incentivize the replicas of a subnet to collaborate with the IPC agent on the creation of \pofsFull, a similar mechanism can be deployed.
+For example, a valid \pof would include metadata, where the replicas that participated in its creation could insert an address to receive a reward when the \pof is accepted.
