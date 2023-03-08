@@ -1,9 +1,9 @@
 \section{Introduction}
 \label{sec:introduction}
 
-A blockchain system is a platform for hosting replicated applications (a.k.a. smart contracts in Ethereum [??] or actors in Filecoin [??]).
+A blockchain system is a platform for hosting replicated applications (represented by smart contracts in Ethereum [??] or actors in Filecoin [??]).
 A single system can, at the same time, host many such applications,
-each of which containing logic for processing inputs (a.k.a. transactions, requests, or messages) and updating its internal state accordingly.
+each of which containing logic for processing inputs (also known as transactions, requests, or messages) and updating its internal state accordingly.
 The blockchain system stores multiple copies of those applications' state and executes the associated logic.
 In practice, applications are largely (or even completely) independent.
 This means that the execution of one application's transactions rarely (or even never) requires accessing the state of another application.
@@ -15,40 +15,45 @@ This may greatly impair the performance of such a system at scale (in terms of t
 Moreover, if processing a transaction incurs a cost (transaction fee) for the user submitting it, using the system tends to become more expensive when the system is saturated.
 
 The typical application hosted by blockchain systems is asset transfer between users (wallets).
-It is true that many other applications are often involved in transferring assets and asset transfer may create system-wide dependencies between different parts of the system state.
+Asset transfers often involve other applications and may create system-wide dependencies between different parts of the system state.
 In general, if users interacted in an arbitrary manner (or even uniformly at random), this would indeed be the case.
-However, in practical systems, users typically tend to cluster in a way that users inside a cluster interact more frequently than users from different clusters.
+However, in practical systems, users tend to cluster in a way that those inside a cluster interact more frequently than users from different clusters.
 While this ``locality" makes it unnecessary to totally order transactions confined to different clusters (in practice, the vast majority of them),
 many current blockchain systems spend valuable resources on doing so anyway.
 
-An additional issue of such systems it the lack of flexibility in catering for the different hosted applications.
+An additional issue of such systems is the lack of flexibility in catering for the different hosted applications.
 Different applications may prefer vastly different trade-offs (in terms of latency, throughput, security, durability, etc...).
 For example, a high-level money settlement application may require the highest levels of security and durability, but may more easily compromise on performance in terms of transaction latency and throughput.
-On the other hand, one can imagine a distributed online chess platform (especially one supporting fast chess variants), where most of its state is ephemeral (until the end of the game), but requires high throughput (for many concurrent games) and low latency (few people like waiting 10 minutes for the opponent's move).
+On the other hand, one can imagine a distributed online chess platform (especially one supporting fast chess variants) whose state is mostly ephemeral (lasting until the end of the game) but which requires high throughput (for many concurrent games) and low latency (few people like waiting 10 minutes for the opponent's move).
 While the former is an ideal use case for the Bitcoin network, the latter would probably benefit more from being deployed in a single data center.
+\jorge{It's an okay example but just noting that concurrent games are independent and can be seen as different applications; I don't think it negates the specific point being made here.}
 
 In the above example, one can also easily imagine those two applications being mostly, but not completely independent.
 E.g., a chess player may be able to win some money in a chess tournament and later use it to buy some goods outside of the scope of the chess platform.
 In such a case, few transactions involve both applications (e.g., paying the tournament registration fee and withdrawing the prize money).
 The rest (e.g., the individual chess moves) are confined to the chess application and can thus be performed much faster and much cheaper (imagine playing chess by posting each move on Bitcoin for comparison).
 
-\ipcFull (\ipc) is a system that enables the deployment of heterogeneous applications on heterogeneous underlying SMR/blockchain platforms, while still allowing them to interact in a secure way.
-The basic idea behind \ipc is dynamically deploying separate, loosely coupled SMR/blockchain systems (that we call \emph{subnets}) to host different (sets of) applications.
+\ipcFull (\ipc) is a system that enables the deployment of heterogeneous applications on heterogeneous underlying blockchain platforms, while still allowing them to interact in a secure way.
+The basic idea behind \ipc is dynamically deploying separate, loosely coupled blockchain systems that we call \emph{subnets}, to host different (sets of) applications.
 Each subnet runs its own consensus protocol and maintains its own ordered transaction log.
 
-\ipc is organized in a hierarchical fashion, where each subnet, except for one that we call the \emph{rootnet}, is associated with exactly one other subnet (called its \emph{parent}).
-Conversely, one parent can have arbitrarily many subnets (called \emph{children}) associated with it.
+\ipc is organized in a hierarchical fashion, where each subnet, except for one that we call the \emph{rootnet}, is associated with exactly one other subnet called its \emph{parent}.
+Conversely, one parent can have arbitrarily many subnets, called \emph{children}, associated with it.
 
 This tree of subnets expresses a hierarchy of trust.
 All components of a subnet and all users using it are assumed to fully trust their parent and regard it as the ultimate source of truth.
-Note that, in general, trust in all components of the parent subnet is not required, but the parent system as a whole is always assumed to be correct (for some subnet-specific definition of correctness) by its child.
+Note that, in general, trust in all components of the parent subnet is not required, but the parent system as a whole is always assumed to be correct (for some definition of correctness specific to the parent subnet) by its child.
 
-To facilitate the interaction between different subnets, \ipc provides mechanisms for communication between them.
-In particular:
+To facilitate the interaction between different subnets, \ipc provides mechanisms for inter-subnet communication.
+Since subnets are distributed transaction-processing systems
+without an obvious single entity to submit transactions to one subnet on behalf of another subnet,
+we introduce processes called \emph{\ipc agents} that read the replicated state of one subnet and submit transactions on its behalf to another subnet.
+Participants running those \ipc agents get rewarded for such mediation.
+Out of the box, \ipc provides several primitives for subnet interaction, such as
 \begin{enumerate}
-    \item Assuming a common notion of money (assets / tokens / ...) between a parent and a child and accounts that can hold them, \ipc also defines how money is moved between accounts in different subnets.
-    \item We define the notion of a \emph{checkpoint} as a snapshot of the state of a subnet after having processed a certain sequence of transactions.
-    \ipc enables child subnets to place references to their checkpoints inside the state of their parents.
+    \item Transfer of funds between accounts residing in different subnets.
+    \item Saving checkpoints (snapshots) of a child subnet's replicated state in the replicated state of its parent.
+    \item Submitting transactions to a subnet by the application logic of another subnet.
 \end{enumerate}
 
 The operating model described above is simple but powerful.
@@ -56,8 +61,8 @@ In particular, it enables
 \begin{itemize}
     \item Scaling, by using multiple blockchain/SMR platforms to host a large number of applications.
     \item Optimization of blockchain platforms for applications running on top of them.
-    \item Governance of a child subnet by its parent, by way of the parent serving as the source of truth for the child (and, for example, maintaining the child's configuration, validator set, and other subnet-specific data).
-    \item ``Inheriting" by the subnet of some of its parent's security and trustworthiness, by periodically anchoring its state (through checkpoints) in the state of the parent.
+    \item Governance of a child subnet by its parent, by way of the parent serving as the source of truth for the child and, for example, maintaining the child's configuration, replica set, and other subnet-specific data.
+    \item ``Inheriting" by the subnet of some of its parent's security and trustworthiness, by periodically anchoring its state in the state of the parent using checkpoints.
 \end{itemize}
 
 In the rest of this document, we describe \ipc in detail.

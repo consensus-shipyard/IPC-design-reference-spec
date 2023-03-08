@@ -1,0 +1,53 @@
+\section{Example Use Case: Chess Platform}
+\label{sec:example-use-case}
+
+To better understand how \ipc works and how it is useful, let us expand on the example application of a distributed chess platform sketched in the introduction of this document.
+Imagine platform where registered chess players meet and play against each other, while the platform maintains player rankings (e.g. Elo ratings).
+Tournaments can be organized as well, where each participant pays a participation fee and the winner(s) obtain prize money (both in form of coins).
+We now describe how \ipc could be used to build this hypothetical application in a fully distributed fashion.
+
+\paragraph{Rootnet (L1).}
+The rootnet is used as a financial settlement layer.
+Most of users' coins are on accounts residing in the rootnet's replicated state.
+A robust established blockchain system like Filecoin would be a good candidate for use as the rootnet.
+Its relatively higher latency and lower throughput (that is often the price for security and robustness) is not a practical issue,
+as users will rarely directly interact with it.
+
+\paragraph{Chess platform as a subnet (L2).}
+The functionality of the chess platform
+(such as maintaining score boards, recommending opponents to players, or organizing tournaments)
+is implemented as a distributed application on a dedicated subnet.
+This subnet uses a significantly faster BFT-style consensus protocol (such as Trantor),
+since the application needs to be responsive for the sake of user experience,
+and deals, in general, with significantly fewer funds than the rootnet (only as much as users dedicate to playing chess).
+The replicas constituting this subnet are run by chess clubs or even individual chess players (who do not necessarily trust each other, e.g. to not manipulate the score boards).
+To have a replica in the L2 subnet, the club (or the player) need to lock a certain amount of funds as collateral that can be slashed by the system in case of the replica misbehaving.
+The collateral / slashing mechanism is described in more detail in \Cref{sec:incentives-collateral-slashing,sec:slash}.
+
+\paragraph{Individual games (L3).}
+For each individual game of chess, a new child of the L2 subnet is created (\Cref{sec:create}).
+Since not much is usually at stake in a single game and only two players are involved,
+the whole L3 subnet may even be implemented by a single server that both players trust.
+However, this decision is completely up to the players and they may choose a different implementation of the L3 subnet
+when starting the game (by submitting the corresponding transactions to the L2 subnet).
+A chess game is also very easily modeled as a simple application, its state consisting of the positions of the individual pieces on the board,
+while players' moves are represented as transactions.
+When the game finishes, its result is automatically reported to the L2 subnet (\Cref{sec:cross-net-tx}), which updates the players' ratings accordingly,
+and the L3 subnet is disposed of (\Cref{sec:remove}).
+
+\paragraph{Player accounts.}
+Each player has an account on the L2 subnet where they deposit funds (\Cref{sec:deposit}) from the rootnet by submitting a corresponding L1 transaction%
+\footnote{We call a transaction submitted to the L1 blockchain an ``L1 transaction''.}.
+They use these funds to pay transaction fees on the L2 subnet and tournament registration fees.
+A player can transfer funds back to their L1 account through a withdraw operation (\Cref{sec:withdraw}) -- again, by submitting an L2 transaction.
+
+\paragraph{Tournaments.}
+Chess tournaments can be organized using the platform, where each player registers by submitting a corresponding L2 transaction.
+When the tournament finishes, the winner receives the prize money (obtained through the registration fees) on their L2 account.
+One can also easily imagine that only part of the collected fees transforms to the prize, while the rest can remain in the platform
+and be used for other purposes, such as rewarding the owners of the replicas running the subnet that hosts the platform (i.e., the L2 subnet).
+
+\paragraph{}
+This simple use case utilizes most of \ipc's features.
+Throughout the rest of the document, we will use the on-line chess platform as a running example when describing \ipc's functionality in more detail.
+\matej{This ``running example'' part is still to be added to the rest of the document. Coming soon, almost surely still this week.}
