@@ -2,13 +2,14 @@
 \label{sec:incentives}
 
 In the previous sections, we defined the components of an IPC system and their roles in implementing the IPC functionality.
-Most of the functionality involved submitting transactions to subnets by an IPC Agent.
+Most of the functionality involved submitting transactions to subnets by an IPC agent.
 However, in general, submitting transactions (and their subsequent execution by the subnet) is associated with a \emph{cost} (often referred to as "gas").
 We refer to the cost associated with a transaction as the \emph{transaction fee}, measured in coins.
-An IPC Agent might need an incentive to participate in such a costly protocol.
+A participant running an IPC agent is not necessarily interested in participating in such a costly protocol without incentives.
 
 Moreover, the replicas of a subnet might need to cooperate with IPC agents during the construction of \pofsFull.
-Unless non-cooperation can be detected and penalized (see \Cref{sec:slashing}), subnet replicas also might need an incentive to participate in the creation of a \pof.
+Even though certain deviations from the protocol can be detected and penalized (see \Cref{sec:slash}),
+participants running subnet replicas might also need incentives to participate in the creation of a \pof.
 
 This section describes mechanisms that can be used to incentivize participants running IPC agents
 to submit the required transactions and pay the corresponding transaction fees,
@@ -17,27 +18,52 @@ It is \emph{not} the goal of this section to provide a game-theoretic model of v
 We merely present tools for implementing such mechanisms, to be used by those who design and implement concrete instances of IPC subnets.
 
 
-\subsection{Accounts}
+\subsection{Accounts and Actors}
 
-We assume that each IPC agent has accounts in both the parent and the child subnet
-and that the fees for the transaction the IPC agent submits to the respective subnets are deducted from the respective accounts.
+We assume that a participant running an IPC agent has associated accounts in both the parent and child subnets and that the fees for the transaction the IPC agent submits to the respective subnets are deducted from the respective accounts.
 If the balance of the account is insufficient to pay the transaction fee, the transaction is considered invalid and is ignored by the subnet.
-We further assume that smart contracts (the \sa and the \gw) can also hold funds and that their logic can distribute those funds among other accounts on their respective subnets.
+The \sa and the \gw, can, as actors, also hold funds that their logic can distribute among other accounts or actors on their respective subnets.
 
 \paragraph{Gateway Actor.}
-The Gateway actor accumulates from its own subnet. For example, the subnet's implementation can require a certain part of each transaction fee to be sent to the Gateway Actor.
+The \gw accumulates funds from its own subnet. For example, the subnet's implementation can require a certain part of each transaction fee to be sent to the Gateway Actor.
 
 \paragraph{Subnet Actor.}
-The Subnet Actor accummulates funds from the subnet it governs.
+The \sa accummulates funds from the subnet it governs.
 There are several ways how one can imagine the \sa to be funded,
-for example, by withdrawals initiated by the child subnet's \gw,
-or by periodicaly charging the child's replicas for being included in the replica set.
+for example, by charging fees for checkpoint transactions,
+or by periodicaly charging the child's replicas for being included in the replica set. The subnet actor also holds at the parents all the funds deposited at the child, which can be thus used as part of the incentive mechanism (for example, through slashing).
 
 \subsection{Refunds and Rewards}
 
-An IPC Agent submitting a transaction that invokes a function of the \gw or the \sa can receive a refund of the transaction fee directly from the invoked smart contract,
-according to arbitrary rules defined in the smart contract's logic.
-For example, such a rule could be to credit the submitting IPC Actor's account with the amount of the transaction fee, augmented by a fixed (or proportional) reward.
+As shown in Section~\ref{sec:functionality}, an IPC Agent may need to submit transactions that invoke functions of the \gw or \sa. The participant running this IPC agent can receive a refund of the transaction fee (possibly augmented by an additional reward) directly from the invoked actor, according to an incentive mechanism defined in the actor's logic. For example, the actor's logic may credit an account with the amount of the transaction fee for reporting frauds through slashing, submitting cross-net transactions, or submitting checkpoint transactions. 
+
+Similarly, other behavior can be punishable by slashing an amount. The \sa has access to the accounting data and can thus penalize participants that misbehave by slashing a portion or their funds, in accordance with the accounting data. 
 
 To incentivize the replicas of a subnet to collaborate with the IPC agent on the creation of \pofsFull, a similar mechanism can be deployed.
 For example, a valid \pof would include metadata, where the replicas that participated in its creation could insert an address to receive a reward when the \pof is accepted.
+
+\subsection{Collateral and Slashing}
+\label{sec:incentives-collateral-slashing}
+
+In order to disincentivize replicas of a subnet from misbehaving, \ipc provides a mechanism for conditioning a replica's participation in the child subnet on \emph{collateral}.
+To this end, the \sa can associate each replica of the child subnet with a collateral.
+Replicas must transfer this collateral to the \sa, and the \sa only releases the collateral back once the corresponding replica stops participating in the subnet. The way in which the collateral associated with replicas impacts the functioning of the child is subnet-specific.
+
+% For example, like in a Proof-of-Stake system, the amount of collateral associated with a child's replica may determine that replica's relative power in the child subnet.
+
+
+If a child replica provably misbehaves, the proof of such misbehavior can be submitted as a transaction to the \sa (invoking its \emph{Slash} function).
+The \sa then decreases the amount of collateral associated with the offending replica in accordance with its (subnet-specific) slashing policy.
+
+Note that collateral is different from funds deposited for use in the child subnet.
+Unlike the deposited funds, collateral is not made available in the child subnet
+and stays in the parent's \sa until the associated replica stops participating in the subnet, either by leaving or by being slashed.
+
+
+% \del{
+% The \sa's has access to the corresponding child's accounting data, i.e. to all the funds ever deposited at the child. An important aspect of the incentive mechanism of a child subnet is thus the rules for validators to withdraw their funds back to the parent, in that validators may be able to double spend all their funds at the child while they artificially create a \pof for retrieving their spent funds at the parent, out of the reach of potential punishments from fraud proofs. We say that \emph{collateral} is an amount of funds deposited by validators to become part of the replica set, and that may require additional conditions to be withdrawn compared to the withdraw operation used to withdraw the rest of deposited funds.
+% }
+
+% \del{
+% Correct participants in the child subnet may need to actively track the amount of collateral available in order to ensure the correctness of the incentive mechanism, and halt participation or even kill the subnet with a last checkpoint if the requirements are not met. For example, an amount of collateral $c$ may be incentive-compatible with a total amount $x$ of funds deposited in the child subnet, but if either $x$ increases or $c$ decreases by some significant amount, then certain validators running the IPC agent may be incentivized to misbehave even if that means losing their collateral.
+% }

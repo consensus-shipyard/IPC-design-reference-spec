@@ -25,7 +25,6 @@
 \newcommand{\SN}{\mathcal{SN}}
 \newcommand{\PN}{\mathcal{PN}}
 \newcommand{\parent}[1]{\texttt{parent}(#1)}
-\newcommand{\actor}{\textsf{Actor}}
 \newcommand{\user}{u}
 \newcommand{\fil}{\textit{amt}\xspace}
 \newcommand{\tx}{\textit{tx}\xspace}
@@ -49,7 +48,7 @@
 \newcommand{\data}{\textit{data}\xspace}
 \newcommand{\dest}{\textit{dest}\xspace}
 \newcommand{\src}{\textit{src}\xspace}
-\newcommand{\postoffice}{postBox\xspace}
+\newcommand{\postoffice}{postbox\xspace}
 \newcommand{\eoa}{\textit{EOA}\xspace}
 \newcommand{\propagate}{\textit{propagate}}
 \newcommand\T[1]{\noindent\textbf{#1}}
@@ -65,12 +64,12 @@
 \newcommand{\out}[1]{{\red{\sout{#1}}}}
 
 % Show diff (exactly one of this and the following pair of commands must be commented)
-% \newcommand{\add}[1]{\textcolor{blue}{#1}}
-% \newcommand{\del}[1]{\textcolor{gray}{#1}}
+\newcommand{\add}[1]{\textcolor{blue}{#1}}
+\newcommand{\del}[1]{\textcolor{gray}{#1}}
 
 % Preview changes (exactly one of this and the previous pair of commands must be commented)
-\newcommand{\add}[1]{#1}
-\newcommand{\del}[1]{}
+% \newcommand{\add}[1]{#1}
+% \newcommand{\del}[1]{}
 
 \newcommand{\replace}[2]{\del{#1}\add{#2}}
 
@@ -81,6 +80,8 @@
 \textcolor{teal}{#1}]}}
 \newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
 \textcolor{brown}{#1}]}}
+\newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
+\textcolor{violet}{#1}]}}
 \newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
 \textcolor{red}{#1}]}}
 \newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
@@ -95,9 +96,9 @@
 \newcommand{\ipcFull}{Interplanetary Consensus\xspace}
 \newcommand{\ipc}{IPC\xspace}
 \newcommand{\sa}{\textit{SA}\xspace}
-\newcommand{\gw}{\textit{GWA}\xspace}
-\newcommand{\dapp}{smart contract\xspace}
-\newcommand{\dapps}{smart contracts\xspace}
+\newcommand{\gw}{\textit{IGA}\xspace}
+\newcommand{\actor}{actor\xspace}
+\newcommand{\actors}{actors\xspace}
 \newcommand{\pofFull}{Proof of Finality\xspace}
 \newcommand{\pofsFull}{Proofs of Finality\xspace}
 \newcommand{\pof}{PoF\xspace}
