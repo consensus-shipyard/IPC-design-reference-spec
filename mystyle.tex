@@ -1,3 +1,69 @@
+% ======================================================================
+% Editing / collaboration
+% ======================================================================
+
+% Show diff (exactly one of this and the following pair of commands must be commented)
+\newcommand{\add}[1]{\textcolor{blue}{#1}}
+\newcommand{\del}[1]{\textcolor{gray}{#1}}
+
+% Preview changes (exactly one of this and the previous pair of commands must be commented)
+% \newcommand{\add}[1]{#1}
+% \newcommand{\del}[1]{}
+
+\newcommand{\replace}[2]{\del{#1}\add{#2}}
+
+% Rendered comments
+\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
+\textcolor{purple}{#1}]}}
+\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
+\textcolor{teal}{#1}]}}
+\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
+\textcolor{brown}{#1}]}}
+\newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
+\textcolor{violet}{#1}]}}
+\newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
+\textcolor{red}{#1}]}}
+\newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
+\textcolor{gray}{#1}]}}
+
+\newcommand{\ignore}[1]{}
+
+% ======================================================================
+% Formatting macros
+% ======================================================================
+
+% Some text colors
+\newcommand{\blue}[1]{{\color{blue}{#1}}}
+\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\out}[1]{{\red{\sout{#1}}}}
+
+\newcommand{\subnetName}[1]{\textbf{\texttt{#1}}}
+\newcommand{\actorName}[1]{\texttt{#1}}
+\newcommand{\funcName}[1]{\textit{\texttt{#1}}}
+\newcommand{\accountName}[1]{\texttt{#1}}
+\newcommand{\tx}[1]{\textit{#1}}
+\newcommand{\funcNameFull}[3]{\subnetName{#1}.\actorName{#2}.\funcName{#3}}
+
+% ======================================================================
+% Macros for names to use in the text
+% ======================================================================
+
+\newcommand{\ipcFull}{Interplanetary Consensus\xspace}
+\newcommand{\ipc}{IPC\xspace}
+\newcommand{\sa}{\actorName{SA}\xspace}
+\newcommand{\saFull}{Subnet Actor\xspace}
+\newcommand{\gw}{\actorName{IGA}\xspace}
+\newcommand{\gwFull}{IPC Gateway Actor\xspace}
+\newcommand{\actor}{actor\xspace} % TODO: Get rid of these and use the word "actor" directly in text. The name is very unlikely to change.
+\newcommand{\actors}{actors\xspace}
+\newcommand{\pofFull}{Proof of Finality\xspace}
+\newcommand{\pofsFull}{Proofs of Finality\xspace}
+\newcommand{\pof}{\textit{PoF}\xspace}
+
+% ======================================================================
+% Legacy macros
+% ======================================================================
+
 %\newtheorem{observation}{Observation}
 \newtheorem{claim}{Claim}
 %\newtheorem{lemma}{Lemma}
@@ -27,7 +93,6 @@
 \newcommand{\parent}[1]{\texttt{parent}(#1)}
 \newcommand{\user}{u}
 \newcommand{\fil}{\textit{amt}\xspace}
-\newcommand{\tx}{\textit{tx}\xspace}
 \newcommand{\txwf}{$tx(\fil,\; \user,\; fee)$\xspace} %tx w\ fee
 \newcommand{\txnf}{$tx(\fil,\; \user)$\xspace} %tx no fee
 \newcommand{\chkp}{$\langle \texttt{chkp},\; fee \rangle $\xspace} %checkpoint
@@ -54,51 +119,3 @@
 \newcommand\T[1]{\noindent\textbf{#1}}
 \newcommand{\impl}{IPC reference implementation\xspace} % name it differently?
 
-% ======================================================================
-% Editing / collaboration
-% ======================================================================
-
-% Some text colors
-\newcommand{\blue}[1]{{\color{blue}{#1}}}
-\newcommand{\red}[1]{{\color{red}{#1}}}
-\newcommand{\out}[1]{{\red{\sout{#1}}}}
-
-% Show diff (exactly one of this and the following pair of commands must be commented)
-\newcommand{\add}[1]{\textcolor{blue}{#1}}
-\newcommand{\del}[1]{\textcolor{gray}{#1}}
-
-% Preview changes (exactly one of this and the previous pair of commands must be commented)
-% \newcommand{\add}[1]{#1}
-% \newcommand{\del}[1]{}
-
-\newcommand{\replace}[2]{\del{#1}\add{#2}}
-
-% Rendered comments
-\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
-\textcolor{purple}{#1}]}}
-\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
-\textcolor{teal}{#1}]}}
-\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
-\textcolor{brown}{#1}]}}
-\newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
-\textcolor{violet}{#1}]}}
-\newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
-\textcolor{red}{#1}]}}
-\newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
-\textcolor{gray}{#1}]}}
-
-\newcommand{\ignore}[1]{}
-
-% ======================================================================
-% Macros for names to use in the text
-% ======================================================================
-
-\newcommand{\ipcFull}{Interplanetary Consensus\xspace}
-\newcommand{\ipc}{IPC\xspace}
-\newcommand{\sa}{\textit{SA}\xspace}
-\newcommand{\gw}{\textit{IGA}\xspace}
-\newcommand{\actor}{actor\xspace}
-\newcommand{\actors}{actors\xspace}
-\newcommand{\pofFull}{Proof of Finality\xspace}
-\newcommand{\pofsFull}{Proofs of Finality\xspace}
-\newcommand{\pof}{PoF\xspace}
