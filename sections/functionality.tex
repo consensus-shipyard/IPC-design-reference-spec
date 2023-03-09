@@ -12,6 +12,7 @@
 \section{IPC functionality}
 \label{sec:functionality}
 
+We now focus on the interaction between two subnets in a parent-child relation, which is the basic building block of the \ipc hierarchy.
 IPC exposes the following functionalities:
 \begin{itemize}
     \item Creating child subnets.
@@ -33,7 +34,7 @@ The \emph{params} value describes all the subnet-specific parameters required to
 such as the initial membership data, the consensus protocol to use, required collateral to use, etc.
 
 The subnet is considered created as soon as the \sa is created.
-From the parent's point of view, the subnet need not yet necessarily be operational at that moment,
+The subnet need not necessarily be operational at this moment,
 as the parent subnet always has a passive role when it comes to interacting with it.
 
 \subsection{Deposits}
@@ -48,13 +49,13 @@ We assume that the owner of \src is either running their own IPC Agent to perfor
 The deposit is performed as follows:
 \begin{enumerate}
     \item The owner of \src submits a transaction
-    $\tx=\textit{P.\sa.Deposit}\left(\src, \fil, \dest \right)$.
+    $\tx{tx}=\textit{P.\sa.Deposit}\left(\src, \fil, \dest \right)$.
     \item The parent subnet orders and executes the \emph{Deposit} transaction (provided $\src$ has enough funds) by transferring \fil from \src to the \sa. This effectively locks the funds within the \sa \actor, until the \sa \actor releases it back at the parent during a withdrawal (see \Cref{sec:withdraw}). 
     % \jorge{is this accurate? the withdraw method takes a destination, so it doesn't seem like it needs to be transferred back to src}\arp{correct, updated}
     \item When the parent's replicated state that includes \emph{tx} becomes final (for some subnet-specific definition of finality),
-    The \ipc agent constructs a $\pof(tx)$\footnote{The exact content of \prf for the transaction \tx depends on the implementation of the SMR systems. It might contain, for example, a quorum of replica signatures, a Merkle proof of inclusion, or even be empty.}
-    \item The IPC Agent submits a transaction $\tx' = \textit{P/C.Deposited}(\fil, \dest, \pof)$ to the child SMR system.
-    \item Upon ordering $\tx'$, the replicated logic of the child SMR system mints \fil new coins and adds them to $\dest$.
+    The \ipc agent constructs a $\pof(tx)$\footnote{The exact content of \prf for the transaction \tx{tx} depends on the implementation of the SMR systems. It might contain, for example, a quorum of replica signatures, a Merkle proof of inclusion, or even be empty.}
+    \item The IPC Agent submits a transaction $\tx{tx'} = \textit{P/C.Deposited}(\fil, \dest, \pof)$ to the child SMR system.
+    \item Upon ordering $\tx{tx'}$, the replicated logic of the child SMR system mints \fil new coins and adds them to $\dest$.
 \end{enumerate}
 
 We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functionality. 
@@ -78,14 +79,14 @@ We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functiona
   \SetKwFor{UponKW}{upon}{do}{fintq}
 
    \Component{Owner of \src}{
-        submit $\tx=\textit{P.\sa.Deposit}\left( \src, \fil, \dest \right)$ to parent subnet\;
+        submit $\tx{tx}=\textit{P.\sa.Deposit}\left( \src, \fil, \dest \right)$ to parent subnet\;
   }
    \Component{P.\sa.Deposit(\src, amt, \dest)}{
     move $\fil$ from \src to P.\sa.\textit{accounts}.\dest  \tcp*[r]{"lock" at parent}
   }
   \Component{IPC agent}{
     \UponKW{tx = P.\sa.Deposit final at parent}{
-        create \prf that \tx is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
+        create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
         submit \textit{P/C.\gw.Deposited(amt, \dest, \pof)}
      }
      \jorge{this notation is also a bit weird, in that "upon tx ... final at parent" is running text and it's not immediately obvious that that's the condition}
@@ -106,8 +107,8 @@ The \emph{Withdraw} is performed analogously to the \emph{Deposit}, but starting
 \begin{enumerate}
   \item The owner of \src submits a transaction \emph{tx =} $\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$.
     \item The child subnet orders and executes the \emph{Withdraw} transaction, burning $\fil$ funds in $\src$ (provided $\src$ has enough funds).
-    \item When the child's replicated state that includes the transaction becomes final (for some SMR-system-specific definition of finality that has been defined in the SA), the \ipc agent constructs a corresponding \pof and submits a transaction \textit{\tx' = P.\sa.Withdrawn(\fil, \dest, \pof)} to the parent subnet.
-    \item Upon ordering $\tx'$, \emph{P.\sa.Withdrawn(amt, \dest, \pof)} verifies the \pof and transfers \emph{amt} from \sa (concretely, to $\src$ account representation within the \sa) to $\dest$ within the parent subnet.
+    \item When the child's replicated state that includes the transaction becomes final (for some SMR-system-specific definition of finality that has been defined in the SA), the \ipc agent constructs a corresponding \pof and submits a transaction \textit{\tx{tx'} = P.\sa.Withdrawn(\fil, \dest, \pof)} to the parent subnet.
+    \item Upon ordering $\tx{tx'}$, \emph{P.\sa.Withdrawn(amt, \dest, \pof)} verifies the \pof and transfers \emph{amt} from \sa (concretely, to $\src$ account representation within the \sa) to $\dest$ within the parent subnet.
 \end{enumerate}
 
  % \begin{figure}[h]
@@ -129,7 +130,7 @@ The \emph{Withdraw} is performed analogously to the \emph{Deposit}, but starting
   \SetKwFor{UponKW}{upon}{do}{fintq}
   % \Input{user~$\user$, amount~$\fil$, transaction \txnf}
    \Component{owner of \src}{
-        submit $\tx=\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$\;
+        submit $\tx{tx}=\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$\;
   }
    %
    \Component{\textit{P/C.\gw.Withdraw(\src, \fil, \dest)}}{
@@ -216,14 +217,14 @@ Note that we do not show here incentives for participants to submit checkpoints,
 %                 \textit{cState} $\gets$ \textit{compressState}(\text{state},\textit{SA\_state.latestCheckpoint})\;
 %                 create \prf that \textit{cState} is final at child\;
 %             }
-%             $\tx=\sa.\texttt{Checkpoint}\left(\textit{cState}, \prf \right)$ \;
+%             $\tx{tx}=\sa.\texttt{Checkpoint}\left(\textit{cState}, \prf \right)$ \;
 %             \If{\textit{Self.}\ssc(tx, SA\_state, ...)}{
 %                 submit $tx$ to parent \smr replica\;
 %             }
 %         }
 %   }
 %   \Component{parent \smr replica}{
-%     \UponKW{$\tx=\sa.\texttt{Checkpoint}\left(\textit{cState}, \prf \right)$}{
+%     \UponKW{$\tx{tx}=\sa.\texttt{Checkpoint}\left(\textit{cState}, \prf \right)$}{
 %         assert \sa.\verifyGfinal{\textit{cState}}{\prf}\;
 %         $\sa.\textit{latestCheckpoint.update}(\textit{cState})$
 %      }
@@ -261,7 +262,7 @@ The implementation of the \gw's \emph{Propagate} function is sketched in \Cref{a
 
 \TODO{Outline algorithm in text, like in the rest of functionalities.}
 
-% \guy{Edge case: a leaf subnet does not have a \sa and, therefore, no \postoffice. We can consider removing the \postoffice functionality from the \sa and to deploy it as an independent \actor that will appear only once per subnet. In this case, it needs permissions to call \sa.\verifyGfinal{\tx}{\prf} function.}
+% \guy{Edge case: a leaf subnet does not have a \sa and, therefore, no \postoffice. We can consider removing the \postoffice functionality from the \sa and to deploy it as an independent \actor that will appear only once per subnet. In this case, it needs permissions to call \sa.\verifyGfinal{\tx{tx}}{\prf} function.}
 
 \begin{algorithm}[H]
 \footnotesize
@@ -273,22 +274,22 @@ The implementation of the \gw's \emph{Propagate} function is sketched in \Cref{a
   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
   \SetKwProg{Empty}{\bf}{:}{\KwRet}
   \SetKwFor{UponKW}{upon}{do}{fintq}
-  \Component{\add{S.}\gw.Propagate($\tx, \src, \dest, \pof)$)}{
-    verify(\tx.\pof)\;
+  \Component{\add{S.}\gw.Propagate($\tx{tx}, \src, \dest, \pof)$)}{
+    verify(\tx{tx}.\pof)\;
     \Case{\dest = \src}{
-        apply \tx
+        apply \tx{tx}
     }
     \Case{\dest requires going up the tree}{
-       $\postoffice \leftarrow \postoffice \cup (\tx, \replace{S/\src}{src.Parent}, \dest)$\;
+       $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{S/\src}{src.Parent}, \dest)$\;
     }
     \Case{\dest requires going down the tree \add{to child $S_c$}}{
-        $\postoffice \leftarrow \postoffice \cup (\tx, \replace{\src/S}{S_c}, \dest)$\;
+        $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{\src/S}{S_c}, \dest)$\;
     }
   }
   \Component{IPC agent}{
-    \UponKW{new entry (\tx, \src, \dest) in \replace{parent}{S}.\gw.\postoffice}{
-        Create \pof proving that \tx' has indeed been added to the list of cross-net transactions in the subnet\;
-        submit \tx', augmented by \emph{\pof}
+    \UponKW{new entry (\tx{tx}, \src, \dest) in \replace{parent}{S}.\gw.\postoffice}{
+        Create \pof proving that \tx{tx'} has indeed been added to the list of cross-net transactions in the subnet\;
+        submit \tx{tx'}, augmented by \emph{\pof}
     }   
     % \jorge{do we need to discuss the matter of implicit execution (or future multisig protocol)? maybe a question for Alfonso}\arp{not here imo (this is not the reference implementation), we discuss it in section \ref\{sec:ref-impl}}
 }
@@ -327,7 +328,7 @@ Slashing is a penalty imposed on provably malicious validators. When validators 
   }
   \Component{IPC agent}{
     \UponKW{$tx=P.\sa.Slash(\mathcal{M}, \pom)$ final at parent}{
-             create \prf that \tx is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
+             create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
              submit $tx'=P/C.\gw.Slashed(\mathcal{M}, \pom, \pof)$
     }
     }
@@ -364,43 +365,43 @@ A child subnet $P/C$ can be removed from its parent $P$ through a transaction in
 %   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
 %   \SetKwProg{Empty}{\bf}{:}{\KwRet}
 %   \SetKwFor{UponKW}{upon}{do}{fintq}
-%   \Input{$\tx = \langle \data, \src, \dest, \prf \rangle$}
+%   \Input{$\tx{tx} = \langle \data, \src, \dest, \prf \rangle$}
 %   \Component{\gw.\postoffice}{
-%      \UponKW{\postoffice.\propagate(\tx) }{
+%      \UponKW{\postoffice.\propagate(\tx{tx}) }{
 %        \Case{\dest in current subnet}{
-%             \postoffice.\propagate\textit{HERE}(\tx)
+%             \postoffice.\propagate\textit{HERE}(\tx{tx})
 %        }
 %        \Case{\dest requires going up the tree}{
-%             \postoffice.\propagate\textit{UP}(\tx)
+%             \postoffice.\propagate\textit{UP}(\tx{tx})
 %        }
 %        \Case{\dest requires going down the tree}{
-%             \postoffice.\propagate\textit{DOWN}(\tx)
+%             \postoffice.\propagate\textit{DOWN}(\tx{tx})
 %        }
 %      }
-%      \UponKW{\postoffice.\propagate\textit{UP}(\tx) }{
+%      \UponKW{\postoffice.\propagate\textit{UP}(\tx{tx}) }{
 %        \If{\src not from this subnet}{
-%             assert \sa.\verifyGfinal{\tx}{\prf}\tcp*[r]{the \sa that corresponds to the child subnet from which \tx comes}
+%             assert \sa.\verifyGfinal{\tx{tx}}{\prf}\tcp*[r]{the \sa that corresponds to the child subnet from which \tx{tx} comes}
 %        }
 %        \src.\textit{append(\gw's subnet id)}\tcp*[r]{the i.d. of the current subnet}
 %        emit event \gw.\postoffice.UP$\langle \data, \src, \dest \rangle$\;
-%        % $\tx \gets \langle \data, \src, \dest \rangle$\;
+%        % $\tx{tx} \gets \langle \data, \src, \dest \rangle$\;
 %        notify agent on \gw.\postoffice.UP$\langle \data, \src, \dest \rangle$
 %      }
-%      \tcp{\propagate\textit{DOWN}(\tx) is analogous to \propagate\textit{UP}(\tx)}
-%      \tcp{\propagate\textit{HERE}(\tx) is trivial}
+%      \tcp{\propagate\textit{DOWN}(\tx{tx}) is analogous to \propagate\textit{UP}(\tx{tx})}
+%      \tcp{\propagate\textit{HERE}(\tx{tx}) is trivial}
 %   }
 %   % \Component{parent \smr process}{
 %   %    \UponKW{event \postoffice.UP$\langle \data, \src, \dest \rangle$}{
-%   %       $\tx \gets \langle \data, \src, \dest \rangle$\;
-%   %       notify agent on \postoffice.UP(\tx)
+%   %       $\tx{tx} \gets \langle \data, \src, \dest \rangle$\;
+%   %       notify agent on \postoffice.UP(\tx{tx})
 %   %    }
 %   % }
 %   \Component{IPC agent}{
 %     \UponKW{notification of \gw.\postoffice.UP$\langle \data, \src, \dest \rangle$ from child}{
-%         $\tx' \gets$ \gw.\postoffice.UP$\langle \data, \src, \dest \rangle$\;
-%         create \prf that \tx' is final at child \smr\;
-%         $\tx_\textit{new}\gets\langle \tx', \prf \rangle$\;
-%         submit \gw.\postoffice.\propagate($\tx_\textit{new}$) to parent \smr
+%         $\tx{tx'} \gets$ \gw.\postoffice.UP$\langle \data, \src, \dest \rangle$\;
+%         create \prf that \tx{tx'} is final at child \smr\;
+%         $\tx{tx}_\textit{new}\gets\langle \tx{tx'}, \prf \rangle$\;
+%         submit \gw.\postoffice.\propagate($\tx{tx}_\textit{new}$) to parent \smr
 %     }   
 % }
 % \end{algorithm}

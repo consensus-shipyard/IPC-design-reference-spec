@@ -1,50 +1,42 @@
- % - Components and their Interfaces
- %   - Parent subnet node
- %   - Child subnet node
- %   - IPC module
- %   - Subnet actor
  \section{Components and their Interfaces}
  \label{sec:components}
 
-We now focus on the interaction between two subnets in a parent-child relation.
-This interaction comprises running the subnets, observing each other's replicated state,
-constructing \pofsFull, submitting the necessary transactions, and modifying the replicated state accordingly. To enable this interaction, \ipc consists of 
-several components and interfaces between them, which we  
-illustrate in \Cref{fig:interfaces}.
+\matej{This section has been moved around and needs updating. Read with care or don't read yet. Update coming soon.}
+
+This section summarizes \ipc's main components (the \gw, \sa, and the \ipc agent) and their interfaces used in \Cref{sec:functionality} to implement \ipc's functionality.
+
+% The interaction between a parent and a child comprises running the subnets, observing each other's replicated state,
+% constructing \pofsFull, submitting the necessary transactions, and modifying the replicated state accordingly. To enable this interaction, \ipc consists of 
+% several components and interfaces between them, which we  
+% illustrate in \Cref{fig:interfaces}.
 % \jorge{Capitalisation in the figure is inconsistent ("Accounting data"). We could also rename gov-acc to "Governance account". The specification of finality verification ("" for self, then "parent's" and "(grant) parent's") seems to confuse more than it helps. I might just call it finality verification and explain in text.}\arp{fixed}
 
-\begin{figure}[ht]
-     \centering
-     \includegraphics[width=0.75\textwidth]{compsintf-2subnets}
-     \caption{The basic \ipc components and their interfaces in an example with one parent and 2 child subnets (A and B).}
-     \label{fig:interfaces}
- \end{figure}
+% \subsection{Components}
 
+% \ipc components consist of three types  of \emph{processes} and two types of \actors.
 
-\subsection{Components}
+% \subsubsection{Processes}
 
-\ipc components consist of three types  of \emph{processes} and two types of \actors.
-
-\subsubsection{Processes}
-
-\begin{enumerate}
+% \begin{enumerate}
     
-    \item \textbf{Parent replica:} The process that executes the SMR protocol of the parent subnet. It keeps a copy of the parent's replicated state, participates in receiving and ordering transactions, and updates the replicated state (including the \sa) accordingly.
+%     \item \textbf{Parent replica:} The process that executes the SMR protocol of the parent subnet. It keeps a copy of the parent's replicated state, participates in receiving and ordering transactions, and updates the replicated state (including the \sa) accordingly.
     
-    \item \textbf{Child replica:} The process that executes the SMR protocol of the child subnet. It keeps a copy of the child's replicated state, participates in receiving and ordering transactions, and updates the replicated state (including the \gw) accordingly. \jorge{IGA and SA are not defined prior to use. Should we just import the acronym package and use it to manage definitions?}
+%     \item \textbf{Child replica:} The process that executes the SMR protocol of the child subnet. It keeps a copy of the child's replicated state, participates in receiving and ordering transactions, and updates the replicated state (including the \gw) accordingly. \jorge{IGA and SA are not defined prior to use. Should we just import the acronym package and use it to manage definitions?}
 
-    \item \textbf{\ipc agent:} The process that mediates the interactions between the two subnets.
-    It has access to the replicated states of both the parent and the child
-    (e.g., by sharing a trust domain with a child and a parent replica, or by downloading the replicated state from other replicas)
-    and acts as an SMR client of both subnets.
-    It is also responsible for constructing \pofsFull, which might involve communication with other processes.
+%     \item \textbf{\ipc agent:} The process that mediates the interactions between the two subnets.
+%     It has access to the replicated states of both the parent and the child
+%     (e.g., by sharing a trust domain with a child and a parent replica, or by downloading the replicated state from other replicas)
+%     and acts as an SMR client of both subnets.
+%     It is also responsible for constructing \pofsFull, which might involve communication with other processes.
 
-\end{enumerate}
+% \end{enumerate}
  
- \subsubsection{Actors}
+\subsection{Actor state}
 
-\begin{enumerate}
-    \item \textbf{Subnet actor (\sa):} The actor in the parent subnet's replicated state
+The following describes the information that needs to be part of the \ipc actors (the \gw and \sa).
+
+\subsubsection{\saFull (\sa)}
+    \sa is the actor in the parent subnet's replicated state
     that stores all information about the child subnet that the parent subnet needs.
     The \sa is created by the \gw (see below) and its functions are invoked by transactions issued by the \ipc agent.
     The state of the \sa includes:
@@ -69,7 +61,9 @@ illustrate in \Cref{fig:interfaces}.
         \item \emph{Slashing data.} List of slashable misbehaviors and corresponding definition of what constitutes a valid proof of misbehavior (\pom), as well as penalties for misbehavior and rewards for reporting \pom and logic performing the actions necessary for slashing in the parent subnet.
         \item \emph{Checkpointing.} Child subnet's checkpoint data, or a pointer thereto, and checkpoint validity rules (and logic enforcing them).
     \end{itemize}
-    \item \textbf{Interplanetary gateway actor (\gw):} an actor that exists in every subnet in the \ipc hierarchy and contains all information and logic the subnet itself needs to hold in order to be part of \ipc. The state of the \gw includes:
+
+\subsubsection{\gwFull (\gw)}
+    The \gw is an actor that exists in every subnet in the \ipc hierarchy and contains all information and logic the subnet itself needs to hold in order to be part of \ipc. The state of the \gw includes:
     \begin{itemize}
         \item
         \emph{Membership data} defining the set of replicas running the \gw's subnet.
@@ -86,7 +80,6 @@ illustrate in \Cref{fig:interfaces}.
         % In particular, consider the following case involving a actor.%
 \footnote{When inter-subnet data transfer happens between users, they can actively participate in the propagation by submitting transactions to the parent and child subnets. actors, on the other hand, do not have that power and, therefore, cannot communicate across subnets as efficiently as users.}
     \end{itemize}
-\end{enumerate}
 
 % OLD VERSION:
 % \begin{enumerate}
