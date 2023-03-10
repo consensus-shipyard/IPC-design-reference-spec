@@ -140,7 +140,7 @@ If a \pof is associated with subnet \subnetName{A}'s replicated state at $h_\sub
 and \pof is included in subnet \subnetName{B}'s replicated state at height $h_\subnetName{B}$,
 then subnet \subnetName{B}'s replicated logic will consider all \subnetName{A}'s state changes up to $h_\subnetName{A}$
 to have occurred at \subnetName{B}'s height $h_\subnetName{B}$.
-We denote by \pof\unskip(\tx{tx}) the proof that a subnet reached a state in which transaction \tx{tx} already has been applied.
+We denote by {\pof}(\tx{tx}) the proof that a subnet reached a state in which transaction \tx{tx} already has been applied.
 
 \paragraph{\ipc agent and actors.}
 For inter-subnet communication, \ipc relies on two special types of actors (the \gwFull (\gw) and the \saFull (\sa)) and one special type of process (the \ipc Agent).

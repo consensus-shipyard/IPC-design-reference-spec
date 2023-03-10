@@ -1,14 +1,3 @@
- % - IPC Functionality
- %  - Minimum required per subnet
- %    - Withdrawal/Deposits Interfaces
- %    - Other Operations? (Propagate?)
- %  - Enhancements
- %    - Checkpointing interfaces
- %    - Propagate
- %    - Reporting/Slashing interfaces
- %    - Atomic execution/swap, IBC-like bridges
- %  - Future stuff (google docs?)
- %    - Withdrawal at ancestor (skip parent(s)) (with timeout) etc.
 \section{IPC functionality}
 \label{sec:functionality}
 
@@ -16,47 +5,75 @@ We now focus on the interaction between two subnets in a parent-child relation, 
 IPC exposes the following functionalities:
 \begin{itemize}
     \item Creating child subnets.
-    \item Removing child subnets.
-    \item Depositing coins from an account in a subnet to an account in its child.
-    \item Withdrawing coins from an account in a subnet to an account in its parent.
+    \item Depositing funds from an account in a subnet to an account in its child.
+    \item Withdrawing funds from an account in a subnet to an account in its parent.
     \item Checkpointing a subnet's replicated state in the replicated state of its parent.
     \item Propagating cross-net transactions.
     \item Slashing misbehaving child replicas.
+    \item Removing child subnets.
 \end{itemize}
-In the following, we describe each functionality in detail.
+In the following, we describe each functionality in detail, introducing the functions of the \gw and \sa through which this functionality is exposed
+and the patterns in which the users and the \ipc agent invoke them through submitting transactions.
+We summarize those components and their implementation in \Cref{sec:components}.
+For clarity, this section does not deal with the incentives for participants to run \ipc agents or subnet replicas to communicate with it.
+We defer the discussion of incentives to \Cref{sec:incentives}.
 
 \subsection{Creating a child subnet}
 \label{sec:create}
 
-Any user of a subnet $P$ can create a new subnet $P/C$ by submitting a transaction $P.\gw.CreateChild(P/C, params)$.
-This results in the creation of a new subnet actor $\sa_C$ in $P$ governing the subnet $P/C$.
-The \emph{params} value describes all the subnet-specific parameters required to initialize the state of $P.\sa_C$,
-such as the initial membership data, the consensus protocol to use, required collateral to use, etc.
+To create child subnets, the \gw exposes the following function.
+\begin{align*}
+    \gw.&\funcName{CreateChild}(\funcParam{subnetName, params})    
+\end{align*}
+Any user or actor of a subnet \subnetName{P} can create a new subnet \subnetName{P/C} by submitting a transaction \funcNameFull{P}{\gw}{CreateChild}(\subnetName{C}, \funcParam{params}),
+where \funcParam{params} is a data structure containing all subnet-specific parameters,
+such as the used consensus protocol, rules for joining the subnet, definitions and evaluation logic for {\pom}s and {\pof}s, and slashing policies.
+This results in the creation of a new \saFull \sa in \subnetName{P} governing the subnet \subnetName{P/C}, initialized with \funcParam{params}.
 
-The subnet is considered created as soon as the \sa is created.
-The subnet need not necessarily be operational at this moment,
+The subnet is considered created as soon as \sa is created.
+The subnet itself need not necessarily be operational at this moment,
 as the parent subnet always has a passive role when it comes to interacting with it.
 
-\subsection{Deposits}
+\subsection{Depositing funds}
 \label{sec:deposit}
 
-% \del{
-% \arp{Consider need to pause/remedy subnet after deposit (e.g. collateral not enough with new supply). IPC agent should check in that case}\guy{Does this comment belong here or somewhere else?}\\
-% }
+A deposit is a transfer of funds from an account in the parent subnet to an account in the child subnet.
+The following functions are exposed by the \ipc actors to enable deposits.
+\begin{align*}
+    \sa.&\funcName{Deposit}(\funcParam{amount, account})\\
+    \gw.&\funcName{MintDeposited}(\funcParam{amount, account, \pof})
+\end{align*}
+The \funcParam{amount} is the amount of funds to be deposited, \funcParam{account} is the destination account in the child subnet, and \funcParam{\pof} is a proof of finality proving that \sa.\funcName{Deposit}(\funcParam{amount, account}) has been applied to the parent subnet's replicated state and that state is final (i.e., cannot be rolled back).
 
-A deposit is a transfer of funds (of some amount \fil) from an account \src in the parent subnet $P$ to an account \dest in the child subnet $P/C$ (i.e., \dest has the form $P/C.someAccount$).
-We assume that the owner of \src is either running their own IPC Agent to perform the necessary operations described below, or uses another trusted IPC agent to act on their behalf.
-The deposit is performed as follows:
+%We assume that the owner of \src is either running their own IPC Agent to perform the necessary operations described below, or uses another trusted IPC agent to act on their behalf.
+Depositing \funcParam{amount} coins from an account \accountNameFull{P}{a} in the parent subnet \subnetName{P} to an account \accountNameFull{P/C}{b} in the child subnet \subnetName{P/C}
+involves the following steps.
+
 \begin{enumerate}
-    \item The owner of \src submits a transaction
-    $\tx{tx}=\textit{P.\sa.Deposit}\left(\src, \fil, \dest \right)$.
-    \item The parent subnet orders and executes the \emph{Deposit} transaction (provided $\src$ has enough funds) by transferring \fil from \src to the \sa. This effectively locks the funds within the \sa \actor, until the \sa \actor releases it back at the parent during a withdrawal (see \Cref{sec:withdraw}). 
-    % \jorge{is this accurate? the withdraw method takes a destination, so it doesn't seem like it needs to be transferred back to src}\arp{correct, updated}
-    \item When the parent's replicated state that includes \emph{tx} becomes final (for some subnet-specific definition of finality),
-    The \ipc agent constructs a $\pof(tx)$\footnote{The exact content of \prf for the transaction \tx{tx} depends on the implementation of the SMR systems. It might contain, for example, a quorum of replica signatures, a Merkle proof of inclusion, or even be empty.}
-    \item The IPC Agent submits a transaction $\tx{tx'} = \textit{P/C.Deposited}(\fil, \dest, \pof)$ to the child SMR system.
-    \item Upon ordering $\tx{tx'}$, the replicated logic of the child SMR system mints \fil new coins and adds them to $\dest$.
+
+    \item The owner of \accountNameFull{P}{a} submits a transaction\\
+    \tx{tx} = \funcNameFull{P}{\sa}{Deposit}(\funcParam{amount}, \accountName{b}).
+    
+    \item \subnetName{P} orders and executes \tx{tx}, transferring \funcParam{amount} coins from \accountName{a} to \sa.%
+    \footnote{For simplicity of presentation, we always assume that transactions are properly signed by the owner of the account from which coins are being spent,
+    that that account has sufficient balance, and in general, that the transactions passes all validity checks that we assume the subnet to perform.}
+    
+    \item When \subnetName{P}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P/C}),
+    The \ipc agent constructs a {\pof}(\tx{tx}).%
+    \footnote{The exact content of the \pof and the way it is constructed depends on the implementation of the subnet.
+    It might contain, for example, a quorum of replica signatures or a Merkle proof of inclusion.
+    The \ipc agent may construct it by simply observing the subnet's replicated state, or by exchanging messages with the subnet's replicas in a dedicated \pof-construction protocol.}
+    
+    \item The \ipc agent submits a transaction\\
+    \tx{tx'} = \funcNameFull{P/C}{\gw}{MintDeposited}(\funcParam{amount}, \accountName{b}, \pof).
+    
+    \item \subnetName{P/C} orders and executes \tx{tx'}, which results in minting \funcParam{amount} new coins and adding them to the balance of \accountName{b}.
 \end{enumerate}
+
+After all the above steps are performed, the involved \funcParam{amount} of coins ``exists'' twice: once in \subnetName{P}, where it is owned by \subnetName{p}.\sa,
+and once in \subnetName{P/C}, where it is owned by \accountNameFull{P/C}{b}.
+However, those coins can effectively only be used by the owner of \accountNameFull{P/C}{b},
+since \subnetName{P}.\sa will not transfer its coins within \subnetName{P} until they are burned in \subnetName{P/C} during a withdrawal operation (see below).
 
 We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functionality. 
 
