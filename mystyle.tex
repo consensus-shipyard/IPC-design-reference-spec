@@ -17,6 +17,8 @@
 \textcolor{purple}{#1}]}}
 \newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
 \textcolor{teal}{#1}]}}
+\newcommand{\marko}[1]{[\textcolor{blue}{\textbf{mv:}} {\footnotesize
+\textcolor{purple}{#1}]}}
 \newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
 \textcolor{brown}{#1}]}}
 \newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
@@ -39,12 +41,14 @@
 
 \newcommand{\subnetName}[1]{\textbf{\texttt{#1}}}
 \newcommand{\actorName}[1]{\texttt{#1}}
+\newcommand{\dataField}[1]{\texttt{#1}}
 \newcommand{\funcName}[1]{\textit{\texttt{#1}}}
 \newcommand{\funcParam}[1]{\textit{#1}}
 \newcommand{\accountName}[1]{\texttt{#1}}
 \newcommand{\accountNameFull}[2]{\subnetName{#1}.\texttt{#2}}
 \newcommand{\tx}[1]{\textit{#1}}
 \newcommand{\funcNameFull}[3]{\subnetName{#1}.\actorName{#2}.\funcName{#3}}
+\newcommand{\var}[1]{\textit{#1}}
 
 % ======================================================================
 % Macros for names to use in the text
@@ -52,8 +56,10 @@
 
 \newcommand{\ipcFull}{Interplanetary Consensus\xspace}
 \newcommand{\ipc}{IPC\xspace}
-\newcommand{\sa}{\actorName{SA}\xspace}
-\newcommand{\saFull}{Subnet Actor\xspace}
+\newcommand{\sa}{\actorName{ISA}\xspace}
+\newcommand{\saOf}[1]{$\sa_\subnetName{#1}$}
+\newcommand{\saFull}{IPC Subnet Actor\xspace}
+\newcommand{\saFulls}{IPC Subnet Actors\xspace}
 \newcommand{\gw}{\actorName{IGA}\xspace}
 \newcommand{\gwFull}{IPC Gateway Actor\xspace}
 \newcommand{\actor}{actor\xspace} % TODO: Get rid of these and use the word "actor" directly in text. The name is very unlikely to change.
@@ -61,6 +67,7 @@
 \newcommand{\pofFull}{Proof of Finality\xspace}
 \newcommand{\pofsFull}{Proofs of Finality\xspace}
 \newcommand{\pof}{\textit{PoF}\xspace}
+\newcommand{\postoffice}{postbox\xspace}
 
 % ======================================================================
 % Legacy macros
@@ -115,8 +122,16 @@
 \newcommand{\data}{\textit{data}\xspace}
 \newcommand{\dest}{\textit{dest}\xspace}
 \newcommand{\src}{\textit{src}\xspace}
-\newcommand{\postoffice}{postbox\xspace}
+\newcommand{\bqueue}{bottom-up registry\xspace}
+\newcommand{\tqueue}{top-down registry\xspace}  
+\newcommand{\tcheckpoint}{top-down checkpoint}
 \newcommand{\eoa}{\textit{EOA}\xspace}
 \newcommand{\propagate}{\textit{propagate}}
 \newcommand\T[1]{\noindent\textbf{#1}}
 \newcommand{\impl}{IPC reference implementation\xspace} % name it differently?
+
+% \let\period.
+% \catcode`\.\active 
+% \def\uppercasesingleletter#1{\uppercase{#1}}
+% \def.{\period\afterassignment\periodx\let\next= }
+% \def \periodx{\ifcat\space\next \next\expandafter\uppercasesingleletter \else\expandafter\next\fi}

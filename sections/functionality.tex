@@ -1,19 +1,21 @@
-\section{IPC functionality}
+\section{IPC parent-child interactions}
 \label{sec:functionality}
 
-We now focus on the interaction between two subnets in a parent-child relation, which is the basic building block of the \ipc hierarchy.
-IPC exposes the following functionalities:
-\begin{itemize}
-    \item Creating child subnets.
+We now focus on the interaction between two subnets in a parent-child relation, which is the basic building block of the recursive \ipc hierarchy.
+IPC interface exposes the following functionalities:
+\begin{enumerate}
+
+    \item Creating child subnets in the IPC hierarchy.
     \item Depositing funds from an account in a subnet to an account in its child.
     \item Withdrawing funds from an account in a subnet to an account in its parent.
     \item Checkpointing a subnet's replicated state in the replicated state of its parent.
     \item Propagating cross-net transactions.
     \item Slashing misbehaving child replicas.
-    \item Removing child subnets.
-\end{itemize}
+    \item Removing child subnets from the IPC hierarchy.
+    \item Managing proof-of-stake subnets, exposing functions for adding and removing replicas, managing the associated collateral, and slashing of provably misbehaving replicas.
+\end{enumerate}
 In the following, we describe each functionality in detail, introducing the functions of the \gw and \sa through which this functionality is exposed
-and the patterns in which the users and the \ipc agent invoke them through submitting transactions.
+and the patterns in which the users and the \ipc agent invoke them via transactions.
 We summarize those components and their implementation in \Cref{sec:components}.
 For clarity, this section does not deal with the incentives for participants to run \ipc agents or subnet replicas to communicate with it.
 We defer the discussion of incentives to \Cref{sec:incentives}.
@@ -28,9 +30,9 @@ To create child subnets, the \gw exposes the following function.
 Any user or actor of a subnet \subnetName{P} can create a new subnet \subnetName{P/C} by submitting a transaction \funcNameFull{P}{\gw}{CreateChild}(\subnetName{C}, \funcParam{params}),
 where \funcParam{params} is a data structure containing all subnet-specific parameters,
 such as the used consensus protocol, rules for joining the subnet, definitions and evaluation logic for {\pom}s and {\pof}s, and slashing policies.
-This results in the creation of a new \saFull \sa in \subnetName{P} governing the subnet \subnetName{P/C}, initialized with \funcParam{params}.
+This results in the creation of a new \saFull \saOf{C} in \subnetName{P} governing the subnet \subnetName{P/C}, initialized with \funcParam{params}.
 
-The subnet is considered created as soon as \sa is created.
+The subnet is considered created as soon as \saOf{C} is created.
 The subnet itself need not necessarily be operational at this moment,
 as the parent subnet always has a passive role when it comes to interacting with it.
 
@@ -51,31 +53,31 @@ involves the following steps.
 
 \begin{enumerate}
 
-    \item The owner of \accountNameFull{P}{a} submits a transaction\\
-    \tx{tx} = \funcNameFull{P}{\sa}{Deposit}(\funcParam{amount}, \accountName{b}).
+    \item The owner of \accountNameFull{P}{a} submits, using their wallet, a transaction\\
+    \tx{tx} = \funcNameFull{P}{\saOf{C}}{Deposit}(\funcParam{amount}, \accountName{b}).
     
-    \item \subnetName{P} orders and executes \tx{tx}, transferring \funcParam{amount} coins from \accountName{a} to \sa.%
+    \item \subnetName{P} orders and executes \tx{tx}, transferring \funcParam{amount} coins from \accountName{a} to \saOf{C}.%
     \footnote{For simplicity of presentation, we always assume that transactions are properly signed by the owner of the account from which coins are being spent,
     that that account has sufficient balance, and in general, that the transactions passes all validity checks that we assume the subnet to perform.}
     
-    \item When \subnetName{P}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P/C}),
-    The \ipc agent constructs a {\pof}(\tx{tx}).%
+    \item When \subnetName{P}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P/C}.\gw, which contains the \pof verification logic),
+    the \ipc agent constructs a {\pof}(\tx{tx}).%
     \footnote{The exact content of the \pof and the way it is constructed depends on the implementation of the subnet.
     It might contain, for example, a quorum of replica signatures or a Merkle proof of inclusion.
     The \ipc agent may construct it by simply observing the subnet's replicated state, or by exchanging messages with the subnet's replicas in a dedicated \pof-construction protocol.}
     
     \item The \ipc agent submits a transaction\\
-    \tx{tx'} = \funcNameFull{P/C}{\gw}{MintDeposited}(\funcParam{amount}, \accountName{b}, \pof).
+    \tx{tx'} = \funcNameFull{P/C}{\gw}{MintDeposited}(\funcParam{amount}, \accountName{b}, {\pof}(\tx{tx})).
     
-    \item \subnetName{P/C} orders and executes \tx{tx'}, which results in minting \funcParam{amount} new coins and adding them to the balance of \accountName{b}.
+    \item \subnetName{P/C} orders and executes \tx{tx'}, which results in minting \funcParam{amount} new coins and adding them to the balance of \accountNameFull{P/C}{b}.
+    
 \end{enumerate}
 
-After all the above steps are performed, the involved \funcParam{amount} of coins ``exists'' twice: once in \subnetName{P}, where it is owned by \subnetName{p}.\sa,
-and once in \subnetName{P/C}, where it is owned by \accountNameFull{P/C}{b}.
+After all the above steps are performed, the newly minted \funcParam{amount} of coins at the child is backed by the analogous locked amount at \subnetName{p}.\saOf{C}.
 However, those coins can effectively only be used by the owner of \accountNameFull{P/C}{b},
-since \subnetName{P}.\sa will not transfer its coins within \subnetName{P} until they are burned in \subnetName{P/C} during a withdrawal operation (see below).
+since \subnetName{P}.\saOf{C} will not transfer its coins within \subnetName{P} until they are burned in \subnetName{P/C} during a withdrawal operation (see below).
 
-We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functionality. 
+% We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functionality. 
 
 % \begin{figure}[h]
 %      \centering
@@ -83,98 +85,151 @@ We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functiona
 %      \caption{Events produced and consumed during a deposit.}
 %      \label{fig:deposit}
 % \end{figure}
+
  
+% \begin{algorithm}[H]
+% \footnotesize
+% \caption{Deposit operation}\label{alg:deposit}
+%   \DontPrintSemicolon
+%   \SetKwFunction{FMain}{Global}
+%   \SetKwProg{Pn}{Function}{:}{\KwRet}
+%   \SetKwInOut{Input}{input}
+%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+%   \SetKwFor{UponKW}{upon}{do}{fintq}
 
-\begin{algorithm}[H]
-\footnotesize
-\caption{Deposit operation}\label{alg:deposit}
-  \DontPrintSemicolon
-  \SetKwFunction{FMain}{Global}
-  \SetKwProg{Pn}{Function}{:}{\KwRet}
-  \SetKwInOut{Input}{input}
-  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
+%    \Component{Owner of \src}{
+%         submit $\tx{tx}=\textit{P.\sa.Deposit}\left( \src, \fil, \dest \right)$ to parent subnet\;
+%   }
+%    \Component{P.\sa.Deposit(\src, amt, \dest)}{
+%     move $\fil$ from \src to P.\sa.\textit{accounts}.\dest  \tcp*[r]{"lock" at parent}
+%   }
+%   \Component{IPC agent}{
+%     \UponKW{tx = P.\sa.Deposit final at parent}{
+%         create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
+%         submit \textit{P/C.\gw.Deposited(amt, \dest, \pof)}
+%      }
+%      \jorge{this notation is also a bit weird, in that "upon tx ... final at parent" is running text and it's not immediately obvious that that's the condition}
+%   }
+%   \Component{P/C.\gw.Deposited(amt, \dest, \pof)}{
+% %    \UponKW{\texttt{Deposited}}{
+%         verify(\pof)\;
+%         increase \dest account by \fil
+% %     }
+%   }
+% \end{algorithm}
 
-   \Component{Owner of \src}{
-        submit $\tx{tx}=\textit{P.\sa.Deposit}\left( \src, \fil, \dest \right)$ to parent subnet\;
-  }
-   \Component{P.\sa.Deposit(\src, amt, \dest)}{
-    move $\fil$ from \src to P.\sa.\textit{accounts}.\dest  \tcp*[r]{"lock" at parent}
-  }
-  \Component{IPC agent}{
-    \UponKW{tx = P.\sa.Deposit final at parent}{
-        create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
-        submit \textit{P/C.\gw.Deposited(amt, \dest, \pof)}
-     }
-     \jorge{this notation is also a bit weird, in that "upon tx ... final at parent" is running text and it's not immediately obvious that that's the condition}
-  }
-  \Component{P/C.\gw.Deposited(amt, \dest, \pof)}{
-%    \UponKW{\texttt{Deposited}}{
-        verify(\pof)\;
-        increase \dest account by \fil
-%     }
-  }
-\end{algorithm}
 
 \subsection{Withdrawals}
 \label{sec:withdraw}
 
-A withdrawal is a transfer of funds from an account \src in the child subnet $P/C$ to an account \dest in the parent subnet $P$.
-The \emph{Withdraw} is performed analogously to the \emph{Deposit}, but starting at the child subnet $P/C$:
+A withdrawal is a transfer of funds from an account in the child subnet to an account in the parent subnet.
+The following functions are exposed by the \ipc actors to enable withdrawals.
+\begin{align*}
+    \gw.&\funcName{Withdraw}(\funcParam{amount, account})\\
+    \sa.&\funcName{ReleaseWithdrawn}(\funcParam{amount, account, \pof})
+\end{align*}
+The \funcParam{amount} is the amount of funds to be withdrawn, \funcParam{account} is the destination account in the parent subnet to which the withdrawn funds are to be credited, and \funcParam{\pof} is a proof of finality proving that \gw.\funcName{Withdraw}(\funcParam{amount, account}) has been applied to the child subnet's replicated state and that state is final (i.e., cannot be rolled back).
+
+Withdrawing \funcParam{amount} coins from an account \accountNameFull{P/C}{b} in the child subnet \subnetName{P/C} to an account \accountNameFull{P}{a} in the parent subnet \subnetName{P}
+involves the following steps.
+
 \begin{enumerate}
-  \item The owner of \src submits a transaction \emph{tx =} $\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$.
-    \item The child subnet orders and executes the \emph{Withdraw} transaction, burning $\fil$ funds in $\src$ (provided $\src$ has enough funds).
-    \item When the child's replicated state that includes the transaction becomes final (for some SMR-system-specific definition of finality that has been defined in the SA), the \ipc agent constructs a corresponding \pof and submits a transaction \textit{\tx{tx'} = P.\sa.Withdrawn(\fil, \dest, \pof)} to the parent subnet.
-    \item Upon ordering $\tx{tx'}$, \emph{P.\sa.Withdrawn(amt, \dest, \pof)} verifies the \pof and transfers \emph{amt} from \sa (concretely, to $\src$ account representation within the \sa) to $\dest$ within the parent subnet.
+
+    \item The owner of \accountNameFull{P/C}{b} submits, using their wallet, a transaction\\
+    \tx{tx} = \funcNameFull{P/c}{\gw}{Withdraw}(\funcParam{amount}, \accountName{a}).
+    
+    \item \subnetName{P/C} orders and executes \tx{tx}, burning \funcParam{amount} coins from \accountName{b}.%
+    
+    \item When \subnetName{P/C}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P}.\saOf{C}),
+    The \ipc agent constructs a {\pof}(\tx{tx}).
+    
+    \item The \ipc agent submits a transaction\\
+    \tx{tx'} = \funcNameFull{P}{\gw}{ReleaseWithdrawn}(\funcParam{amount}, \accountName{a}, {\pof}(\tx{tx})).
+    
+    \item \subnetName{P} orders and executes \tx{tx'}, which results in \subnetName{P}.\saOf{C} transferring \funcParam{amount} coins to account \accountNameFull{P}{a}.
+    
 \end{enumerate}
 
- % \begin{figure}[h]
- %     \centering
- %     \includegraphics[width=\textwidth]{withdrawal}
- %     \caption{Events produced and consumed during a withdrawal.}
- %     \label{fig:withdrawal}
- % \end{figure}
- We show in Algorithm~\ref{alg:withdraw} the pseudocode to implement the functionality. 
+The above procedure ensures that the locked \funcParam{amount} at the parent is not released until the child has already burned the minted \funcParam{amount} of coins.
+The \subnetName{P}.\saOf{C} actor ensures (by verifying the associated \pof) that the coins have been burned in \subnetName{P/C}
+before releasing the corresponding \funcParam{amount} back into circulation in \subnetName{P}.
 
-\begin{algorithm}[H]
-\footnotesize
-\caption{Withdraw operation}\label{alg:withdraw}
-  \DontPrintSemicolon
-  \SetKwFunction{FMain}{Global}
-  \SetKwProg{Pn}{Function}{:}{\KwRet}
-  \SetKwInOut{Input}{input}
-  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
-  % \Input{user~$\user$, amount~$\fil$, transaction \txnf}
-   \Component{owner of \src}{
-        submit $\tx{tx}=\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$\;
-  }
-   %
-   \Component{\textit{P/C.\gw.Withdraw(\src, \fil, \dest)}}{
-    deduct $\fil$ from \src \tcp{"burns" \fil in child}
-  }
-  \Component{IPC agent}{
-    \UponKW{tx = P/C.\gw.Withdraw(\src, \fil, \dest) final at child}{
-        create $\pof(tx)$ \tcp*[r]{see \cref{sec:finality} for details}
-        submit \textit{P.\sa.Withdrawn(amt, \dest, \pof)}
-     }
-  }
-  \Component{P.\sa.Withdrawn(amt, \dest, \pof)}{
-    verify($\pof(tx')$)\;
-    move \fil coins from P.\sa to \dest \tcp{"unlocks" \textit{amt} for \dest}
-  }
+% OLD VERSION
+% A withdrawal is a transfer of funds from an account \src in the child subnet $P/C$ to an account \dest in the parent subnet $P$.
+% The \emph{Withdraw} is performed analogously to the \emph{Deposit}, but starting at the child subnet $P/C$:
+% \begin{enumerate}
+%   \item The owner of \src submits a transaction \emph{tx =} $\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$.
+%     \item The child subnet orders and executes the \emph{Withdraw} transaction, burning $\fil$ funds in $\src$ (provided $\src$ has enough funds).
+%     \item When the child's replicated state that includes the transaction becomes final (for some SMR-system-specific definition of finality that has been defined in the SA), the \ipc agent constructs a corresponding \pof and submits a transaction \textit{\tx{tx'} = P.\sa.Withdrawn(\fil, \dest, \pof)} to the parent subnet.
+%     \item Upon ordering $\tx{tx'}$, \emph{P.\sa.Withdrawn(amt, \dest, \pof)} verifies the \pof and transfers \emph{amt} from \sa (concretely, to $\src$ account representation within the \sa) to $\dest$ within the parent subnet.
+% \end{enumerate}
+
+%  % \begin{figure}[h]
+%  %     \centering
+%  %     \includegraphics[width=\textwidth]{withdrawal}
+%  %     \caption{Events produced and consumed during a withdrawal.}
+%  %     \label{fig:withdrawal}
+%  % \end{figure}
+%  We show in Algorithm~\ref{alg:withdraw} the pseudocode to implement the functionality. 
+
+% \begin{algorithm}[H]
+% \footnotesize
+% \caption{Withdraw operation}\label{alg:withdraw}
+%   \DontPrintSemicolon
+%   \SetKwFunction{FMain}{Global}
+%   \SetKwProg{Pn}{Function}{:}{\KwRet}
+%   \SetKwInOut{Input}{input}
+%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+%   \SetKwFor{UponKW}{upon}{do}{fintq}
+%   % \Input{user~$\user$, amount~$\fil$, transaction \txnf}
+%    \Component{owner of \src}{
+%         submit $\tx{tx}=\textit{P/C.\gw.Withdraw}(\src, \fil, \dest)$\;
+%   }
+%    %
+%    \Component{\textit{P/C.\gw.Withdraw(\src, \fil, \dest)}}{
+%     deduct $\fil$ from \src \tcp{"burns" \fil in child}
+%   }
+%   \Component{IPC agent}{
+%     \UponKW{tx = P/C.\gw.Withdraw(\src, \fil, \dest) final at child}{
+%         create $\pof(tx)$ \tcp*[r]{see \cref{sec:finality} for details}
+%         submit \textit{P.\sa.Withdrawn(amt, \dest, \pof)}
+%      }
+%   }
+%   \Component{P.\sa.Withdrawn(amt, \dest, \pof)}{
+%     verify($\pof(tx')$)\;
+%     move \fil coins from P.\sa to \dest \tcp{"unlocks" \textit{amt} for \dest}
+%   }
    
-\end{algorithm}
-\label{enhancedFunc}
+% \end{algorithm}
+% \label{enhancedFunc}
 
 \subsection{Checkpointing} 
-A checkpoint contains a representation of the state of the child subnet to be included in the parent subnet's replicated state. A checkpoint can be triggered by predefined events (e.g.,  periodically, after a number of state updates, triggered by a specific user or set of users, etc.).
-A checkpoint is created as follows:
+Checkpointing is a method for a parent subnet to keep a record of the evolution of its child subnet's replicated state
+by including snapshots of the child's replicated state (called checkpoints) in the parent's replicated state.
+If, for some reason, the child subnet misbehaves as a whole (e.g., by a majority of its replicas being taken over by an adversary), 
+agreement can be reached in the parent subnet about how to proceed.
+For example, which checkpoint should be considered the last valid one.
+The following function is exposed by the \sa to enable checkpointing.
+
+\begin{align*}
+    \sa.&\funcName{Checkpoint}(\funcParam{snapshot}, \pof)
+\end{align*}
+
+A checkpoint can be triggered by predefined events (e.g.,  periodically, after a number of state updates, triggered by a specific user or set of users, etc.).
+The \ipc agent is configured with the (subnet-specific) checkpoint trigger, monitors the child subnet's replicated state,
+and takes the appropriate action when the trigger condition is satisfied by the child subnet's state.
+A checkpoint of subnet \subnetName{P/C} to its parent \subnetName{P} is created as follows:
 \begin{enumerate}
-    \item When the predefined checkpoint trigger is met (the IPC Agent, monitoring the child subnet's state, is configured with the checkpoint trigger),
-    the IPC agent retrieves the corresponding checkpoint data (\emph{chkp}) from the child subnet, along with the proof of its finality (\emph{\pof}).
-    \item The IPC agent submits a transaction \emph{tx = P.\sa.Checkpoint(chkp, \pof)}.
-    \item The \emph{P.SA.Checkpoint(chkp, \pof)} invocation, after verifying the \emph{\pof}, includes \emph{chkp} in its state.
+
+    \item When the predefined checkpoint trigger is met in the replicated state of \subnetName{P/C},
+    the \ipc agent retrieves the corresponding snapshot of \subnetName{P/C}'s replicated state (\emph{state}) from the child subnet, along with the proof of its finality {\pof}(\emph{state}).
+
+    \item The \ipc agent submits a transaction\\
+    \tx{tx} = \funcNameFull{P}{\saOf{C}}{Checkpoint}(\funcParam{state}, {\pof}(\funcParam{state})).
+
+    \item \subnetName{P} orders and executes \tx{tx}, which results in \subnetName{P}.\saOf{C} including \funcParam{state}
+    (i.e., the checkpoint of \subnetName{P/C}'s replicated state) in its own actor state.
+
 \end{enumerate}
 
 % \TODO{Pseudocode}
@@ -186,35 +241,36 @@ A checkpoint is created as follows:
 %      \caption{Events produced and consumed by the checkpointing functionality.}
 %      \label{fig:chkp}
 %  \end{figure}
-Note that we do not show here incentives for participants to submit checkpoints, \add{the same way we do not discuss in Algorithm~\ref{alg:checkpoint} whether the particular participant running the IPC agent has even rights to submit the checkpoint. We show instead in Section~\ref{sec:incentives} different mechanisms that can be used to incentivize participants running IPC agents, while in Section~\ref{sec:ref-impl} we describe how the reference implementation of IPC incentivizes and gives participants the right to submitting checkpoints. Analogously, we discuss in Section~\ref{sec:ref-impl} optimizations and other design decisions made to the checkpoint operation.}
+% \del{
+% Note that we do not show here incentives for participants to submit checkpoints, the same way we do not discuss in Algorithm~\ref{alg:checkpoint} whether the particular participant running the IPC agent has even rights to submit the checkpoint. We show instead in Section~\ref{sec:incentives} different mechanisms that can be used to incentivize participants running IPC agents, while in Section~\ref{sec:ref-impl} we describe how the reference implementation of IPC incentivizes and gives participants the right to submitting checkpoints. Analogously, we discuss in Section~\ref{sec:ref-impl} optimizations and other design decisions made to the checkpoint operation.
+% }
 
 
+% \begin{algorithm}[H]
+% \footnotesize
+% \caption{Checkpoint operation}\label{alg:checkpoint}
+%   \DontPrintSemicolon
+%   \SetKwFunction{FMain}{Global}
+%   \SetKwProg{Pn}{Function}{:}{\KwRet}
+%   \SetKwInOut{Input}{input}
+%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+%   \SetKwFor{UponKW}{upon}{do}{fintq}
 
-\begin{algorithm}[H]
-\footnotesize
-\caption{Checkpoint operation}\label{alg:checkpoint}
-  \DontPrintSemicolon
-  \SetKwFunction{FMain}{Global}
-  \SetKwProg{Pn}{Function}{:}{\KwRet}
-  \SetKwInOut{Input}{input}
-  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
+%   \Component{IPC agent}{
+%     \UponKW{Checkpoint condition in child}{
+%       $chkp = $ obtain state snapshot from child\;
+%       create $\pof(chkp)$\;
+%       submit $P.\sa.Checkpoint(chkp, \pof(chkp))$
+%     }
+%   }
 
-  \Component{IPC agent}{
-    \UponKW{Checkpoint condition in child}{
-      $chkp = $ obtain state snapshot from child\;
-      create $\pof(chkp)$\;
-      submit $P.\sa.Checkpoint(chkp, \pof(chkp))$
-    }
-  }
-
-  \Component{P.\sa.Checkpoint(chkp, \pof(chkp))}{
-    verify($\pof(tx')$)\;
-    save $chkp$ in the state\;
-    % \TODO{Expand on this. check if the checkpoint is the latest one and use a variable to store the latest checkpoint}
-  }
+%   \Component{P.\sa.Checkpoint(chkp, \pof(chkp))}{
+%     verify($\pof(tx')$)\;
+%     save $chkp$ in the state\;
+%     % \TODO{Expand on this. check if the checkpoint is the latest one and use a variable to store the latest checkpoint}
+%   }
    
-\end{algorithm}
+% \end{algorithm}
 
 % OLD PSEUDOCODE
 % \begin{algorithm}[H]
@@ -256,120 +312,302 @@ Note that we do not show here incentives for participants to submit checkpoints,
 \subsection{Propagating cross-net transactions}
 \label{sec:cross-net-tx}
 
-Unlike a "standard" transaction issued and submitted to a subnet by a user,
-a cross-net transaction is issued by the replicated logic of another subnet.
 Cross-net transactions are a means of interaction between actors located on different subnets.
+Unlike a "standard" transaction issued and submitted to a subnet by a user's wallet,
+a cross-net transaction is issued by actors of another subnet.
 
 Since those actors themselves are not processes (but mere parts of a subnet's replicated state),
 they cannot directly submit transactions to other subnets.
-IPC therefore provides a mechanism to propagate these transactions between subnets using the \postoffice and an IPC agent.
-\add{In a nutshell, if an actor's logic in subnet $S_1$ produces a transaction for a different subnet $S_2$,
-this transaction is saved at $S_1$'s \gw in the postbox buffer.
-The IPC agent, monitoring the \postoffice, then iteratively submits the transaction to the appropriate subnets along the path from $S_1$ to $S_2$.} \del{In a nutshell, if
-a actor’s logic produces a transaction for a different subnet, this transaction
-is saved the local Gateway Actor in the postbox buffer. The IPC agent,
-monitoring the postbox, then submits the transaction to the appropriate
-subnet.}
+IPC therefore provides a mechanism to propagate these transactions between subnets using the following functions of the \gw.
+
+\begin{align*}
+    \gw.&\funcName{Dispatch}(\funcParam{tx, src, dest})\\
+    \gw.&\funcName{Propagate}(\funcParam{tx, src, dest, \pof})
+\end{align*}
+
+In a nutshell, if an actor's logic in subnet $\subnetName{S}_1$ produces a transaction for a different subnet $\subnetName{S}_2$,
+it calls $\subnetName{S}_1$.\gw.\funcName{Dispatch}, which saves the transaction in $\subnetName{S}_1$'s \gw buffer that we call the \postoffice.
+IPC agents, monitoring the \postoffice, then iteratively submit the transaction to the appropriate next subnet along the path from $\subnetName{S}_1$ to $\subnetName{S}_2$ using \gw.\funcName{Propagate}.
 
 Since, in general, we only rely on IPC Agents to be able to submit transactions to parents or children of a subnet whose state they observe,
-the IPC agent only propagates the transaction to the parent or child, depending on which is closer in the IPC hierarchy to the ultimate destination subnet.
+an IPC agent only propagates the transaction to the parent or child, depending on which is next along the shortest path from $\subnetName{S}_1$ to $\subnetName{S}_2$ in the IPC hierarchy.
 After such ``one hop``, the transaction is again placed in the \postoffice of the parent / child, and the process repeats until the transaction reaches its destination subnet.
 
-The implementation of the \gw's \emph{Propagate} function is sketched in \Cref{alg:po}.
+More concretely, we illustrate the propagation of cross-net transaction using an example where an actor subnet \subnetName{P/A}
+is sending a cross-net transaction \tx{tx} to its "sibling" subnet \subnetName{P/B}.
+\tx{tx} is first propagated from \subnetName{P/A} to its parent \subnetName{P}, which, in turn, propagates it to its other child \subnetName{P/B}.
+We use the function \gw.\funcName{Dispatch} in a subnet to announce that the transaction is ready to be propagated
+and the function \gw.\funcName{Propagate} to notify a subnet about a cross-net transaction to be passed on (or delivered, if the destination has been reached).
 
-\TODO{Outline algorithm in text, like in the rest of functionalities.}
+\begin{enumerate}
 
-% \guy{Edge case: a leaf subnet does not have a \sa and, therefore, no \postoffice. We can consider removing the \postoffice functionality from the \sa and to deploy it as an independent \actor that will appear only once per subnet. In this case, it needs permissions to call \sa.\verifyGfinal{\tx{tx}}{\prf} function.}
+    \item An actor \subnetName{P/A}.\actorName{ActorA} constructs a tarnsaction\\
+    \tx{tx} = \funcNameFull{P/B}{ActorB}{SomeFunction}(\funcParam{someParams})
 
-\begin{algorithm}[H]
-\footnotesize
-\caption{Cross-net transaction propagation functionality}\label{alg:po}
-  \DontPrintSemicolon
-  \SetKwFunction{FPropagate}{propagate}
-  \SetKwProg{Pn}{Function}{:}{\KwRet}
-  \SetKwInOut{Input}{input}
-  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwProg{Empty}{\bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
-  \Component{\add{S.}\gw.Propagate($\tx{tx}, \src, \dest, \pof)$)}{
-    verify(\tx{tx}.\pof)\;
-    \Case{\dest = \src}{
-        apply \tx{tx}
-    }
-    \Case{\dest requires going up the tree}{
-       $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{S/\src}{src.Parent}, \dest)$\;
-    }
-    \Case{\dest requires going down the tree \add{to child $S_c$}}{
-        $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{\src/S}{S_c}, \dest)$\;
-    }
-  }
-  \Component{IPC agent}{
-    \UponKW{new entry (\tx{tx}, \src, \dest) in \replace{parent}{S}.\gw.\postoffice}{
-        Create \pof proving that \tx{tx'} has indeed been added to the list of cross-net transactions in the subnet\;
-        submit \tx{tx'}, augmented by \emph{\pof}
-    }   
-    % \jorge{do we need to discuss the matter of implicit execution (or future multisig protocol)? maybe a question for Alfonso}\arp{not here imo (this is not the reference implementation), we discuss it in section \ref\{sec:ref-impl}}
-}
-\end{algorithm}
+    \item \subnetName{P/A}.\actorName{ActorA} invokes the funcion \funcNameFull{P/A}{\gw}{Dispatch}(\tx{tx}, \subnetName{P/A}, \subnetName{P/B})
+    (note that no additional transactions are necessary here).
 
-\subsection{Slashing}
-\label{sec:slash}
-Slashing is a penalty imposed on provably malicious validators. When validators of a child subnet misbehave, other participants can report the misbehavior for these malicious validators to get punished (e.g. by losing a previously collateralized amount). Contrary to misbehaviors at a rootnet (a subnet with no parent), where misbehavers sucessfully perform their attack without escrow available, misbehaviors at the child can be resolved at the parent subnet, provided the misbehavers have not left the subnet. For this reason, a slashing is notified first at the parent, and reconciled at the child later on. In particular, a slash on provably malicious validators of a child subnet is performed as follows:
-\begin{itemize}
-    \item When the IPC agent of a correct participant identifies slashable misbehavior at subnet $P/C$ from a set $\mathcal{M}$ of malicious validators of subnet $P/C$, the IPC agent constructs a \textit{Proof of Misbehavior} (\pom). \item The IPC agent then submits transaction $tx=P.\sa.Slash(\mathcal{M}, \pom)$ at the parent.
-    \item The parent subnet, upon ordering and executing $tx$, penalizes the misbehavers and updates the state of $\sa$.
-    \item Once the parent's replicated state that includes $tx$ becomes final, the IPC agent constructs a $\pof(tx)$ and submits a transaction $tx'=P/C.\gw.Slashed(\mathcal{M}, \pom, \pof(tx))$ 
-    \item The child subnet, upon ordering and executing $tx'$, updates its state to reflect the penalization at the parent. 
-    % \arp{This behavior at the child can later be updated to abort if it took place with $tx_C$ and in fact $tx_P'$ will never happen (i.e. attackers were faster and left subnet on time)} 
-\end{itemize}
-\begin{algorithm}[H] 
-\footnotesize
-\caption{Slash Functionality}\label{alg:down}
-  \DontPrintSemicolon
-  \SetKwFunction{FMain}{Global}
-  \SetKwProg{Pn}{Function}{:}{\KwRet}
-  \SetKwInOut{Input}{input}
-  \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-  \SetKwFor{UponKW}{upon}{do}{fintq}
-  % \Input{-}
-  \add{
-  \Component{IPC agent}{
-     \UponKW{misbehavior from set $\mathcal{M}$ found}{
-        Construct \pom($\mathcal{M}$)\;
-        submit $tx=P.\sa.Slash(\mathcal{M}, \pom)$ to parent subnet
-     }
-  }
-  \Component{$P.\sa.Slash(\mathcal{M}, \pom)$}{
-        verify(\pom)\;
-        \tcp*[l]{Update state to reflect punishment to $\mathcal{M}$}
-  }
-  \Component{IPC agent}{
-    \UponKW{$tx=P.\sa.Slash(\mathcal{M}, \pom)$ final at parent}{
-             create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
-             submit $tx'=P/C.\gw.Slashed(\mathcal{M}, \pom, \pof)$
-    }
-    }
-  \Component{$P/C.\gw.Slashed(\mathcal{M}, \pom, \pof)$}{
-        verify(\pom, \pof)\;
-        \tcp*[l]{Update state to reflect punishment to $\mathcal{M}$}
-    }
-}
-    % \UponKW{\arp{State updated after slashing}}{
-    %   \arp{Check child SMR rules are still satisfied, remedy/close otherwise?}
-    % }
+    \item The implementation of \funcNameFull{P/A}{\gw}{Dispatch} adds \tx{tx} along with the routing metadata to a local collection-type data structure
+    that we call \postoffice and denote \subnetName{P/A}.\gw.\dataField{\postoffice}.
 
-  % \Component{Parent SMR}{
-  %       \UponKW{\slashop submitted by IPC agent}{
-  %        Update SA state slashing/excluding participants
-  %        Notify SA update to IPC agent
-  %       }
-  % }
-\end{algorithm}
+    \item \label{item:first-propagation} Let $state_\subnetName{A}$ be the state of subnet \subnetName{P/A} where \tx{tx} is already included in \subnetName{P/A}.\gw.\dataField{\postoffice}.
+    When the \ipc agent responsible for the interaction between \subnetName{P/A} and \subnetName{P} detects that $state_\subnetName{A}$ is final,
+    it constructs a {\pof}($state_\subnetName{A}$) and submits a transaction\\
+    $\tx{tx}_\subnetName{A}$ = \funcNameFull{P}{\gw}{Propagate}(\tx{tx}, \subnetName{P/A}, \subnetName{P/B}, {\pof}($state_\subnetName{A}$)).
+
+    \item Subnet \subnetName{P} orders and executes $\tx{tx}_\subnetName{A}$, verifying {\pof}($state_\subnetName{A}$)
+    and (internally) invoking \funcNameFull{P}{\gw}{Dispatch}(\tx{tx}, \subnetName{P/A}, \subnetName{P/B}).
+    This, in turn, adds \tx{tx} along with its routing metadata to \subnetName{P}'s \postoffice \subnetName{P}.\gw.\dataField{\postoffice}.
+
+    \item Analogously to step \ref{item:first-propagation}, the \ipc agent submits a transaction\\
+    $\tx{tx}_\subnetName{P}$ = \funcNameFull{P/B}{\gw}{Propagate}(\tx{tx}, \subnetName{P/A}, \subnetName{P/B}, {\pof}($state_\subnetName{P}$)),
+    where $state_\subnetName{P}$ is the state of \subnetName{P} with \tx{tx} already included in \subnetName{P}.\gw.\dataField{\postoffice}.
+
+    \item Upon ordering and executing $\tx{tx}_\subnetName{P}$, \funcNameFull{P/B}{\gw}{Propagate} verifies {\pof}($state_\subnetName{P}$).
+    Detecting that the destination is the own subnet, the implementation of \funcNameFull{P/B}{\gw}{Propagate} executes \tx{tx} instead of propagating it.
+
+\end{enumerate}
+
+
+
+% The implementation of the \gw's \emph{Propagate} function is sketched in \Cref{alg:po}.
+
+% \TODO{Outline algorithm in text, like in the rest of functionalities.}
+
+% % \guy{Edge case: a leaf subnet does not have a \sa and, therefore, no \postoffice. We can consider removing the \postoffice functionality from the \sa and to deploy it as an independent \actor that will appear only once per subnet. In this case, it needs permissions to call \sa.\verifyGfinal{\tx{tx}}{\prf} function.}
+
+% \begin{algorithm}[H]
+% \footnotesize
+% \caption{Cross-net transaction propagation functionality}\label{alg:po}
+%   \DontPrintSemicolon
+%   \SetKwFunction{FPropagate}{propagate}
+%   \SetKwProg{Pn}{Function}{:}{\KwRet}
+%   \SetKwInOut{Input}{input}
+%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+%   \SetKwProg{Empty}{\bf}{:}{\KwRet}
+%   \SetKwFor{UponKW}{upon}{do}{fintq}
+%   \Component{\add{S.}\gw.Propagate($\tx{tx}, \src, \dest, \pof)$)}{
+%     verify(\tx{tx}.\pof)\;
+%     \Case{\dest = \src}{
+%         apply \tx{tx}
+%     }
+%     \Case{\dest requires going up the tree}{
+%        $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{S/\src}{src.Parent}, \dest)$\;
+%     }
+%     \Case{\dest requires going down the tree \add{to child $S_c$}}{
+%         $\postoffice \leftarrow \postoffice \cup (\tx{tx}, \replace{\src/S}{S_c}, \dest)$\;
+%     }
+%   }
+%   \Component{IPC agent}{
+%     \UponKW{new entry (\tx{tx}, \src, \dest) in \replace{parent}{S}.\gw.\postoffice}{
+%         Create \pof proving that \tx{tx'} has indeed been added to the list of cross-net transactions in the subnet\;
+%         submit \tx{tx'}, augmented by \emph{\pof}
+%     }   
+%     % \jorge{do we need to discuss the matter of implicit execution (or future multisig protocol)? maybe a question for Alfonso}\arp{not here imo (this is not the reference implementation), we discuss it in section \ref\{sec:ref-impl}}
+% }
+% \end{algorithm}
 
 \subsection{Removing a child subnet}
 \label{sec:remove}
 
-A child subnet $P/C$ can be removed from its parent $P$ through a transaction invoking $P.\gw.RemoveChild(P/C)$. \add{This transaction effectively deregisters the subnet from the IPC hierarchy. We detail further how to remove a child subnet for the reference implementation in~\cref{sec:ref-impl}.}
+TODO
+% A child subnet $P/C$ can be removed from its parent $P$ through a transaction invoking $P.\gw.RemoveChild(P/C)$. \add{This transaction effectively deregisters the subnet from the IPC hierarchy. We detail further how to remove a child subnet for the reference implementation in~\cref{sec:ref-impl}.}
+
+\subsection{Proof-of-stake subnets}
+
+\ipc provides specialized functionality for subnets based on proof-of-stake (PoS).
+A child subnet can leverage the parent subnet's coins to serve as collateral disincentivizing the child's replicas from misbehaving.
+In such a case, the \sa governing the PoS-based child subnet maintains the child's membership
+-- the list of replicas the child subnet consists of, along with the amount of collateral associated with each of them.
+The membership saved in the \sa's state defines the ground truth about what replicas the child subnet should consist of,
+as well as their relative voting power (proportional to the staked collateral) in the underlying ordering protocol.
+The child subnet observes the state of the \sa in the parent and reconfigures accordingly.
+
+\ipc provides the following functionality for managing PoS-based subnets:
+\begin{itemize}
+    \item Manipulate the membership by staking and releasing collateral associated with replicas
+    \item Slashing, where \ipc permanently removes / redistributes a part of the collateral associated with a provably misbehaving replica (e.g., one that sends conflicting messages in the ordering protocol)
+\end{itemize}
+
+\TODO{Matej: Finish the rest of this subsection in the same style as the previous subsections.}
+
+\subsubsection{Staking collateral}
+\label{sec:staking-collateral}
+
+To increase a replica's collateral in a PoS-based subnet, \ipc uses the following functions.
+
+\begin{align*}
+    \sa.&\actorName{StakeCollateral}(\funcParam{account, replica, amount})\\
+    \gw.&\actorName{UpdateMembership}(\funcParam{membership, \pof})
+\end{align*}
+
+Concretely, to increase the amount of collateral associated with a \funcParam{replica} in subnet \subnetName{P/C},
+collateral must be staked for \funcParam{replica} in the parent \subnetName{P}'s \saFull \subnetName{P}.\saOf{C}.
+Let the the account from which the collateral is transfered to \subnetName{P}.\saOf{C} be \accountNameFull{P}{a}.
+(Any user with sufficient account balance (at least \funcParam{amount}) can perform this operation.)
+
+The child subnet, holding its own local copy of the target membership, is then informed (through an \ipc agent) about the membership change and reconfigures to reflect it.
+Note that it is required for the child subnet to hold a copy of the membership in its replicated state, so that all its replicas observe it in a consistent way.
+In fact, the child subnet replicated state contains two versions of membership information:
+\begin{itemize}
+    \item The \emph{target membership}, which is a local copy of the membership stored in \subnetName{P}.\saOf{C} and designates the desired membership of the child subnet
+    to which the subnet must reconfigure.
+    \item The \emph{current membership}, which is the actual membership currently being used by the subnet to order and execute transactions.
+    Since the process of reconfiguration to a new membership is usually not immediate, the current membership may "lag behind" the target membership.
+\end{itemize}
+The whole staking procedure is as follows.
+
+\begin{enumerate}
+
+    \item The owner of \accountNameFull{P}{a} submits the transaction\\
+    \tx{tx} = \funcNameFull{P}{\saOf{C}}{StakeCollateral}(\accountNameFull{P}{a}, \funcParam{replica}, \funcParam{amount}).
+
+    \item After ordering \tx{tx}, \subnetName{P}.\saOf{C} increases the collateral associated with \funcParam{replica} by \funcParam{amount},
+    which is deducted from the submitting user's account in \subnetName{P}.
+    If no collateral has been previously associated with \funcParam{replica}, this effectively translates in \funcParam{replica} joining the subnet.
+
+    \item \label{item:update-membership} The \ipc agent, upon detecting the updated \funcParam{membership} in \subnetName{P}.\saOf{C} through the application of \tx{tx},
+    constructs a {\pof}(\tx{tx}) and submits the transaction\\
+    \tx{tx'} = \funcNameFull{P/C}{\gw}{UpdateMembership}(\funcParam{membership}, {\pof}(\tx{tx})).
+
+    \item Upon ordering \tx{tx'} and successfully verifying {\pof}(\tx{tx}), \subnetName{P/C}.\gw updates its target membership.
+
+    \item Subnet \subnetName{P/C} reconfigures (the reconfiguration procedure is specific to the implementation of the subnet and its ordering protocol)
+    to use the new \funcParam{membership} as its current membership.
+    
+\end{enumerate}
+
+\subsubsection{Releasing collateral}
+
+Releasing collateral works similarly (but inversely) to staking, with one significant difference.
+Namely, once the child subnet \subnetName{P/C} reconfigures to reflect the updated membership, the parent's \saFull \subnetName{P}.\saOf{C} does not release the staked funds
+until it is given a proof that the child subnet \subnetName{P/C} finished the (subnet-specific) reconfiguration procedure
+and that no replica has more voting power than corresponds to its collateral after the release.
+The following functions are involved in releasing collateral:
+
+\begin{align*}
+    \sa.&\actorName{RequestCollateral}(\funcParam{replica, amount, account})\\
+    \gw.&\actorName{UpdateMembership}(\funcParam{membership, \pof})\\
+    \sa.&\actorName{ReleaseCollateral}(\funcParam{membership, \pof})
+\end{align*}
+
+Let \accountNameFull{P}{a} be an account that has staked collateral for a \funcParam{replica} in a PoC-based subnet \subnetName{P/C}.
+The procedure for releasing collateral is as follows.
+
+\begin{enumerate}
+
+    \item The owner of \accountNameFull{P}{a} submits the transaction\\
+    \tx{tx} = \funcNameFull{P}{\saOf{C}}{RequestCollateral}(\funcParam{replica}, \funcParam{amount}, \accountName{a}),\\
+    where \funcParam{amount} is the amount of funds the owner of \accountNameFull{P}{a} wants to reclaim.
+
+    \item After ordering \tx{tx} and checking that \accountNameFull{P}{a} has indeed previously staked at least \funcParam{amount} for \funcParam{replica},
+    \subnetName{P}.\saOf{C} decreases the collateral associated with \funcParam{replica} by \funcParam{amount}.
+    Note that \subnetName{P}.\sa does not yet transfer \funcParam{amount} back to \accountNameFull{P}{a}
+
+    \item The \ipc agent, upon detecting the updated \funcParam{membership} in \subnetName{P}.\saOf{C} through the application of \tx{tx},
+    constructs a {\pof}(\tx{tx}) and submits the transaction\\
+    \tx{tx'} = \funcNameFull{P/C}{\gw}{UpdateMembership}(\funcParam{membership}, {\pof}(\tx{tx})).
+
+    \item Upon ordering \tx{tx'} and successfully verifying {\pof}(\tx{tx}), \subnetName{P/C}.\gw updates its target membership.
+
+    \item Subnet \subnetName{P/C} reconfigures (the reconfiguration procedure is specific to the implementation of the subnet and its ordering protocol)
+    to use the new \funcParam{membership} as its current membership.
+
+    \item The \ipc agent detects that the current membership of \subnetName{P/C} has changed.
+    Let \funcParam{state} be the the replicated state of \subnetName{P/C} where the current membership has already been updated.
+
+    \item The \ipc agent constructs a {\pof}(\funcParam{state}) and submits the transaction\\
+    \tx{tx''} = \funcNameFull{P}{\saOf{C}}{ReleaseCollateral}(\funcParam{membership}, {\pof}(\funcParam{state}))
+
+    \item Upon ordering \tx{tx''} and successfully verifying {\pof}(\tx{tx}),
+    \subnetName{P}.\saOf{C} verifies that the received \funcParam{membership} reflects the requested change in the collateral of \funcParam{replica}
+    and, if this is the case, transfers \funcParam{amount} to \accountNameFull{P}{a}.
+    
+\end{enumerate}
+
+\subsubsection{Slashing a misbehaving replica}
+\label{sec:slash}
+Slashing is a penalty imposed on provably malicious replicas in proof-of-stake based subnets.
+When a replica of a child subnet provably misbehaves, \ipc agents can report the misbehavior to its parent subnet,
+which can take an appropriate (configured) action (e.g., confiscate a part of the replica's collateral).
+The definition of what constitutes a provable misbehavior is subnet-specific.
+An example of such misbehavior is sending equivocating messages in the subnet's ordering protocol, such as two conflicting proposals for the same block height.
+\ipc exposes the following function to enable slashing:
+
+\begin{align*}
+    \sa.&\funcName{Slash}(\funcParam{replica, PoM})
+\end{align*}
+
+Slashing a misbehaving \funcParam{replica} of a PoS-based subnet \subnetName{P/C} proceeds as follows:
+
+\begin{enumerate}
+    
+    \item The \funcParam{replica} provably misbehaves, e.g., by sending two signed contradictory messages
+    that would not have been sent if \funcParam{replica} strictly followed its prescribed distributed protocol.
+
+    \item An \ipc agent is informed of this misbehavior, e.g., by the replicas that received the contradictory messages,
+    constructs a Proof of Misbehavior (\funcParam{PoM}) (e.g., a data structure containing the two contradictory messages signed by \funcParam{replica}),
+    and submits the transaction \tx{tx} = \funcNameFull{P}{\saOf{C}}{Slash}(\funcParam{replica}, \funcParam{PoM})
+
+    \item Upon ordering \tx{tx}, \subnetName{P}.\saOf{C} applies evaluates the \funcParam{PoM} against \funcParam{replica}
+    and adapts its associated collateral accordingly, resulting in a new membership for \subnetName{P/C}.
+
+    \item Updating the membership of \subnetName{P/C} and subsequent reconfiguration proceeds exactly as in \Cref{sec:staking-collateral}, from \Cref{item:update-membership} on.
+
+\end{enumerate}
+
+% OLD VERSION
+% Contrary to misbehaviors at a rootnet (a subnet with no parent), where misbehavers sucessfully perform their attack without escrow available, some misbehaviors at the child can be resolved at the parent subnet, provided the misbehavers have not left the subnet. For this reason, a slashing is notified first at the parent, and reconciled at the child later on. In particular, a slash on provably malicious validators of a child subnet is performed as follows:
+% \begin{itemize}
+%     \item When the IPC agent of a correct participant identifies slashable misbehavior at subnet $P/C$ from a set $\mathcal{M}$ of malicious validators of subnet $P/C$, the IPC agent constructs a \textit{Proof of Misbehavior} (\pom). \item The IPC agent then submits transaction $tx=P.\sa.Slash(\mathcal{M}, \pom)$ at the parent.
+%     \item The parent subnet, upon ordering and executing $tx$, penalizes the misbehavers and updates the state of $\sa$.
+%     \item Once the parent's replicated state that includes $tx$ becomes final, the IPC agent constructs a $\pof(tx)$ and submits a transaction $tx'=P/C.\gw.Slashed(\mathcal{M}, \pom, \pof(tx))$ 
+%     \item The child subnet, upon ordering and executing $tx'$, updates its state to reflect the penalization at the parent. 
+%     % \arp{This behavior at the child can later be updated to abort if it took place with $tx_C$ and in fact $tx_P'$ will never happen (i.e. attackers were faster and left subnet on time)} 
+% \end{itemize}
+% \begin{algorithm}[H] 
+% \footnotesize
+% \caption{Slash Functionality}\label{alg:down}
+%   \DontPrintSemicolon
+%   \SetKwFunction{FMain}{Global}
+%   \SetKwProg{Pn}{Function}{:}{\KwRet}
+%   \SetKwInOut{Input}{input}
+%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
+%   \SetKwFor{UponKW}{upon}{do}{fintq}
+%   % \Input{-}
+%   \add{
+%   \Component{IPC agent}{
+%      \UponKW{misbehavior from set $\mathcal{M}$ found}{
+%         Construct \pom($\mathcal{M}$)\;
+%         submit $tx=P.\sa.Slash(\mathcal{M}, \pom)$ to parent subnet
+%      }
+%   }
+%   \Component{$P.\sa.Slash(\mathcal{M}, \pom)$}{
+%         verify(\pom)\;
+%         \tcp*[l]{Update state to reflect punishment to $\mathcal{M}$}
+%   }
+%   \Component{IPC agent}{
+%     \UponKW{$tx=P.\sa.Slash(\mathcal{M}, \pom)$ final at parent}{
+%              create \prf that \tx{tx} is final at parent subnet \tcp*[r]{see \cref{sec:finality}}
+%              submit $tx'=P/C.\gw.Slashed(\mathcal{M}, \pom, \pof)$
+%     }
+%     }
+%   \Component{$P/C.\gw.Slashed(\mathcal{M}, \pom, \pof)$}{
+%         verify(\pom, \pof)\;
+%         \tcp*[l]{Update state to reflect punishment to $\mathcal{M}$}
+%     }
+% }
+%     % \UponKW{\arp{State updated after slashing}}{
+%     %   \arp{Check child SMR rules are still satisfied, remedy/close otherwise?}
+%     % }
+
+%   % \Component{Parent SMR}{
+%   %       \UponKW{\slashop submitted by IPC agent}{
+%   %        Update SA state slashing/excluding participants
+%   %        Notify SA update to IPC agent
+%   %       }
+%   % }
+% \end{algorithm}
 
 % OLD PSEUDOCODE
 % \begin{algorithm}[H]

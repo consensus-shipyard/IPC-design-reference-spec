@@ -2,7 +2,7 @@
 \label{sec:example-use-case}
 
 To better understand how \ipc works and how it is useful, let us expand on the example application of a distributed chess platform sketched in the introduction of this document.
-Imagine platform where registered chess players meet and play against each other, while the platform maintains player rankings (e.g. Elo ratings).
+Imagine a platform where registered chess players meet and play against each other, while the platform maintains player rankings (e.g. Elo ratings).
 Tournaments can be organized as well, where each participant pays a participation fee and the winner(s) obtain prize money (both in form of coins).
 We now describe how \ipc could be used to build this hypothetical application in a fully distributed fashion.
 
@@ -22,7 +22,7 @@ since the application needs to be responsive for the sake of user experience,
 and deals, in general, with significantly fewer funds than the rootnet (only as much as users dedicate to playing chess).
 The replicas constituting this subnet are run by chess clubs or even some (not necessarily all) individual chess players
 (who do not necessarily trust each other, e.g. to not manipulate the score boards).
-To have a replica in the \subnetName{L2} subnet, the club (or the player) need to lock a certain amount of funds as collateral that can be slashed by the system in case of the replica misbehaving.
+To have a replica in the \subnetName{L2} subnet, the club (or the player) needs to lock a certain amount of funds as collateral that can be slashed by the system in case of misbehavior.
 The collateral / slashing mechanism is described in more detail in \Cref{sec:incentives-collateral-slashing,sec:slash}.
 
 \paragraph{Individual games (\subnetName{L3}).}
@@ -52,3 +52,5 @@ and be used for other purposes, such as rewarding the owners of the replicas run
 This simple use case utilizes most of \ipc's features.
 Throughout the rest of the document, we will use the on-line chess platform as a running example when describing \ipc's functionality in more detail.
 \matej{This ``running example'' part is still to be added to the rest of the document. Coming soon, but I'd prefer to have some feedback on the general suitability of this example. Then I start integrating it in the text throughout the document.}
+\arp{Following discussion on integrating cross-net txs in this example, how about having a common ranking of a user across different games (e.g.: heckers, 3d chess, Xiangqi, etc.) that are in different subnets (rootnet children) and cross-net txs inform each other of match results to locally update user's ranking (and to authenticate in the first place)}
+\matej{In fact, I meant basically that above, in the paragraph about individual games (last sentence is already pointing to the section on cross-net txs.)}
