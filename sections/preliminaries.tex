@@ -1,9 +1,10 @@
 \section{Preliminaries}
-\label{sec:model}
+\label{sec:preliminaries}
 
-The vocabulary used throughout this document is described in the Glossary \cite{glossary}.
+The vocabulary used throughout this document is described in the Glossary \cite{glossary} (e.g., \emph{subnets}, \emph{actors}, \emph{accounts}, \emph{users}, and \emph{\ipc agents}).
 The reader is assumed to be familiar with the terminology defined there.
 \jorge{Despite this not, the vocabulary seems to be defined throughout the body. If we're defining in the body anyway, the appendix seems redundant -- this isn't a book.}
+\marko{If the glossary is stable, I suggest bringing it to the main body of the paper by defining concepts inline, as we go. Glossary can additionally stay in the appendix, for quick reference.}
 
 % \subsection{Computation and failure model}
 
@@ -116,41 +117,70 @@ The reader is assumed to be familiar with the terminology defined there.
 % \actors are an abstraction over the replicated state of an SMR system and their logic is being executed by all its replicas.
 % While a process can submit a transaction to an SMR system, a \actor cannot.
 
-\paragraph{Abstractions.}
-In this document, we reason in terms of subnets, actors, accounts, users, and \ipc agents (see Glossary \cite{glossary}]).
-While a subnet consists of multiple replicas, we treat it as one entity maintaining a common abstraction of a replicated state
-that can only be modified through transactions submitted either by a users or by an \ipc agent.
-We abstract away the concrete mechanism of transaction submission and execution, as it is specific to the implementation of each particular subnet.
+\paragraph{Basic abstractions.}
+A \emph{subnet} consists of multiple \emph{replicas}, yet we abstract a subnet as a single entity which maintains an  abstraction of replicated state (which is replicated across all replicas)
+that can only be modified through transactions submitted either by  \emph{users} or by an \emph{\ipc agent}.
+We further abstract away the concrete mechanism of transaction submission and execution, as it is specific to the implementation of each particular subnet.
 
 \paragraph{Interaction between subnets.}
-In \ipc, the replicated state of one subnet must react to (changes in) the replicated state of another subnet.
-As the replicated state of every subnet is distributed among its replicas and evolves independently of other subnets,
-we must establish a mechanism for interactions between the states of subnets.
-In particular, we must explicitly link the two replicated states of two subnets.
-More precisely, for any interaction between two subnets (\subnetName{A} and \subnetName{B}), define block heights $h_\subnetName{A}$ and $h_\subnetName{B}$,
-such that \subnetName{A}'s replicated state at height $h_\subnetName{A}$ considers \subnetName{B}'s replicated state to have evolved exactly until $h_\subnetName{B}$.
+In \ipc, the replicated state (or, simply, state) of one subnet often needs to react to changes in the state of another subnet.
+As the state of every subnet  evolves independently of the state of other subnets,
+\emph{IPC establishes a protocol for interactions between the states of different subnets}.
 
-\paragraph{\pofsFull.}
-To enable interaction between subnets, we define a \emph{\pofFull (\pof)} to be data that proves that a subnet definitively reached a certain replicated state.
-Regardless of the subnet's ordering protocol's approach to finality (e.g., immediate finality for classic BFT protocols, or probabilistic finality in PoW-based systems),
-a \pof convinces the proof's verifier that the replicated state the \pof refers to will not be rolled back.
+To enable such interaction and as the basis of the protocol, IPC relies on  \emph{\pofsFull (\pof)}. In a nutshell, \pof consists of data that proves that a subnet irreversibly reached a certain replicated state. Regardless of the approach to \emph{finality} that the  \emph{ordering protocol} of a subnet uses  (e.g., immediate finality for classic BFT protocols \cite{}, or probabilistic finality in PoW-based systems \cite{Bitcoin}),
+a \pof serves to convince the \pof verifier that the replicated state the \pof refers to will not be rolled back. This helps IPC establish the partial ordering  between the  states of two subnets. 
+
+
 For example, for a subnet using a BFT-style ordering protocol, a quorum of signatures produced by its replicas can constitute a \pof.
-This helps us establish the above-mentioned link between the replicated states of two subnets.
-If a \pof is associated with subnet \subnetName{A}'s replicated state at $h_\subnetName{A}$,
-and \pof is included in subnet \subnetName{B}'s replicated state at height $h_\subnetName{B}$,
+\marko{what about longest chain style protocols, how do we construct \pof there?}
+If a \pof is associated with subnet \subnetName{A}'s replicated state at \emph{block height} $h_\subnetName{A}$,
+and \pof is included in subnet \subnetName{B}'s replicated state at block height $h_\subnetName{B}$,
 then subnet \subnetName{B}'s replicated logic will consider all \subnetName{A}'s state changes up to $h_\subnetName{A}$
 to have occurred at \subnetName{B}'s height $h_\subnetName{B}$.
-We denote by {\pof}(\tx{tx}) the proof that a subnet reached a state in which transaction \tx{tx} already has been applied.
+
+In the following, for some representation of a subnet's replicated \emph{state} (e.g., its full serialization or a handle that can be used to retrieve it in a content-addressable way, such as an IPFS content identifier (CID)),
+we denote by {\pof}($state$) the proof that a subnet reached $state$ and we assume $state$  never be rolled back. \marko{but what if it is - esp at longest chain parent net?}
+We also denote by {\pof}(\tx{tx}) the proof that a subnet reached a state in which transaction \tx{tx} already has been applied to replicated state.
+
+\paragraph{Naming subnets.}
+We assign each subnet a name that is unique among all the children of the same parent.
+Similarly to the notation used in a file system, the name of a child subnet is always prefixed by the name of its parent.
+For example, subnets \subnetName{P/C} and \subnetName{P/D} would both be children of subnet \subnetName{P}.
+
+\paragraph{Notation.} We refer to an account \accountName{a} in the replicated state of subnet \subnetName{S} as \subnetName{S}.\accountName{a}.
+To denote a function of an actor in the replicated state of a subnet, we write \funcNameFull{Subnet}{Actor}{Function}.
+E.g., the \emph{IPC Gateway Actor} (\gw) function \funcName{CreateChild} in subnet \subnetName{P} is denoted \funcNameFull{P}{\gw}{CreateChild}.
+We also use this notation for a transaction \tx{tx} submitted to subnet \subnetName{P} that invokes the function, e.g., \tx{tx} = \funcNameFull{P}{\gw}{CreateChild}$(\subnetName{P/C}, params)$.
+
+\paragraph{Representing value.}
+For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{value} (measured in \emph{coins}) common to both subnets.%
+\footnote{One can easily generalize the design to decouple the use of value between a parent and its child, but we stick with using the same kind of value in both subnets for simplicity.}
+Each user is assumed to have an own wallet and a corresponding account in some subnet.
+
+We also assume that the submission, ordering, and application of transactions is associated with a cost (known as transaction fees, or \emph{gas}).
+Each subnet client (user or IPC agent)  submitting a transaction to a subnet is assumed to have an account in that subnet, from which this cost is deducted.
+If the funds are insufficient, the subnet may fail to execute the transaction.
+
+Note that the operation of \ipc requires the submission and processing of transactions that are not easily attributed to a concrete user.
+This is the case with transactions that an \ipc agent submits on behalf of a whole subnet.
+We discuss incentivization of participants to run \ipc agents and pay for the associated transaction fees in \Cref{sec:refunds-rewards}.
 
 \paragraph{\ipc agent and actors.}
-For inter-subnet communication, \ipc relies on two special types of actors (the \gwFull (\gw) and the \saFull (\sa)) and one special type of process (the \ipc Agent).
+For inter-subnet communication, \ipc relies on two special types of actors: the \gwFull (\gw) and the \saFull (\sa); and one special type of process (the \ipc Agent).
 In a nutshell, their functions are as follows.
 \begin{enumerate}
     \item The \gw is an actor that contains all \ipc-related information and logic associated with a subnet that needs to be replicated \emph{in the subnet itself}.
+    Each subnet contains exactly one \gw.
+\marko{Why is IGA an actor an not a blob of information? When does the state of IGA need to change (to demonstrate the need of IGA to be an actor) and how does it change (governance)?}
+
     \item The \sa is the \gw's parent-side counterpart, i.e., it is an actor in a parent subnet's replicated state,
-    containing all the data and logic associated with a particular child subnet (we say the \sa ``governs'' that child subnet).
+    containing all the data and logic associated with a particular child subnet -- we say the \sa ``governs'' that child subnet.
+    A subnet contains as many \saFulls as the number of its children.
+    We refer to the \sa governing child subnet \subnetName{C} as \saOf{C}.
+    
+
     \item Finally, the \ipc agent is a process that mediates the communication between a parent and a child.
-    It has access to the replicated states of both subnets and acts as an SMR client of both.
+    It has access to the replicated states of both subnets and acts as a client of both subnets.
     When the replicated state of subnet \subnetName{A} indicates the need to communicate with subnet \subnetName{B},
     the \ipc agent constructs a \pof for \subnetName{A}'s replicated state and submits it as a transaction to \subnetName{B}.
 \end{enumerate}
@@ -163,25 +193,6 @@ The interaction between subnets through \ipc agents is depicted in \cref{fig:int
      \label{fig:interfaces}
  \end{figure}
 
-\paragraph{Naming subnets.}
-We assign each subnet a name that is unique among all the children of the same parent.
-Similarly to the notation used in a file system, the name of a child subnet is always prefixed by the name of its parent.
-For example, subnets \subnetName{P/C} and \subnetName{P/D} would both be children of subnet \subnetName{P}.
+\TODO{Matej: Describe firewall property.}
 
-\paragraph{Notation.} We refer to an account \accountName{a} in the replicated state of subnet \subnetName{S} as \subnetName{S}.\accountName{a}.
-To denote a function of an actor in the replicated state of a subnet, we write \funcNameFull{Subnet}{Actor}{Function}.
-E.g., the \gw's function \funcName{CreateChild} in subnet \subnetName{P} is denoted \funcNameFull{P}{\gw}{CreateChild}.
-We also use this notation for a transaction \tx{tx} submitted to subnet \subnetName{P} that invokes the function, e.g., \tx{tx} = \funcNameFull{P}{\gw}{CreateChild}(\subnetName{P/C}, params).
-
-\paragraph{Representing value.}
-For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{value} (measured in \emph{coins}) common to both subnets.%
-\footnote{One can easily generalize the design to decouple the use of value between a parent and its child, but we stick with using the same kind of value in both subnets for simplicity.}
-Each user is assumed to have a personal wallet and a corresponding account in some subnet.
-
-We also assume that the submission, ordering, and application of transactions is associated with a cost (known as transaction fees).
-Each SMR client submitting a transaction to a subnet is assumed to have an account in that subnet, from which this cost is deducted.
-If the funds are insufficient, the SMR system ignores the transaction.
-
-Note that the operation of \ipc requires the submission and processing of transactions that are not easily attributed to a concrete user.
-It is the transactions the \ipc agent submits on behalf of a whole subnet.
-We discuss incentivizing (through refunds) participants to run \ipc agents and pay for the associated transaction fees in \Cref{sec:refunds-rewards}.
+\marko{What is missing here is a trust model - sth like an expanded slide 12 in} \url{https://docs.google.com/presentation/d/1l-wEprVrUQFvOjn_eV_QeAZqy6xy1Z7nnKS42zRMH-w/edit#slide=id.g10e8b8656ea_0_65}. It needs to be clear why do we need BFT in the first place and who trusts whom.

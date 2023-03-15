@@ -1,8 +1,10 @@
 \section{Incentives}
 \label{sec:incentives}
 
+\marko{I did not read much new or concrete in this section... After reading it I have no concrete idea how this works. We ned running examples badly}
+
 In the previous sections, we defined the components of an IPC system and their roles in implementing the IPC functionality.
-Most of the functionality involved submitting transactions to subnets by an IPC agent.
+The functionality often involves submitting transactions to subnets by an IPC agent.
 However, in general, submitting transactions (and their subsequent execution by the subnet) is associated with a \emph{cost} (often referred to as "gas").
 We refer to the cost associated with a transaction as the \emph{transaction fee}, measured in coins.
 A participant running an IPC agent is not necessarily interested in participating in such a costly protocol without incentives.
@@ -25,13 +27,13 @@ If the balance of the account is insufficient to pay the transaction fee, the tr
 The \sa and the \gw, can, as actors, also hold funds that their logic can distribute among other accounts or actors on their respective subnets.
 
 \paragraph{Gateway Actor.}
-The \gw accumulates funds from its own subnet. For example, the subnet's implementation can require a certain part of each transaction fee to be sent to the Gateway Actor.
+The \gw accumulates funds from its own subnet. For example, the subnet's implementation can require a certain part of each transaction fee to be sent to the \gw.
 
 \paragraph{Subnet Actor.}
 The \sa accummulates funds from the subnet it governs.
 There are several ways how one can imagine the \sa to be funded,
 for example, by charging fees for checkpoint transactions,
-or by periodicaly charging the child's replicas for being included in the replica set. The subnet actor also holds at the parents all the funds deposited at the child, which can be thus used as part of the incentive mechanism (for example, through slashing).
+or by periodicaly charging the child's replicas for being included in the replica set. The \sa also holds at the parent all the funds deposited at the child, which can be thus used as part of the incentive mechanism (for example, through slashing).
 
 \subsection{Refunds and Rewards}
 \label{sec:refunds-rewards}

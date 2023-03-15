@@ -8,57 +8,101 @@
  \section{IPC's reference implementation}
  \label{sec:ref-impl}
  
- In this section, we describe the particular choices implemented by the Consensus Lab team for the reference implementation of IPC.  
+ In this section, we describe the particular choices implemented by the ConsensusLab team for the reference implementation of IPC.  
  The current implementation considers Filecoin as the rootnet, and Trantor running in child subnets. For our purposes, it is important to note that Trantor is a BFT consensus protocol with immediate finality, and Filecoin is a longest chain style protocol with probabilistic finality. 
 
 \subsection{Components}
-The IPC reference implementation preserves all the components described in~\cref{sec:components} without any additions. We however list here implementation decisions concerning these components.
+The IPC reference implementation preserves all the components described in~\cref{sec:components} without additions. We however list here implementation decisions concerning these components.
 
-\paragraph{\gw and \sa.} The \gw is the only built-in actor of the reference implementation. It is thus the entry point for all IPC-related operations. For this reason, it is the \gw that receives the funds to be deposited for all subnets, and that releases the funds on withdrawals. It also holds the collateral of members of the validator's list. The \sa is user defined by the creators of that subnet, and thus it holds the subnet-specific information, such as the consensus mechanism used, the checkpointing data and rules, slashing rules, etc. This means that unlike the high-level funcionality described in Section~\ref{sec:functionality}, in the implementation the IPC agent calls the actor's method on the \gw (and not the \sa), since that is the actor that must lock or release funds, and perform other state changes. The \gw then requires the minimal required checks for the state change to take place, and then calls the \sa to perform any additional subnet-specific check that the particular subnet may perform. If the checks pass, then the \gw performs the operation.\TODO{Expand on this when talking about each of the functionalities}   
+ \subsubsection{IPC agent} 
+ In the previous sections, we considered that every parent-child pairing had an independent IPC agent process. In fact, the implementation manages to execute one single IPC agent for the entire tree of subnets that may be of relevance to a participant. \marko{remember to define trust model.} This process can be executed either as a daemon or as a command-line tool. In the latter case, the IPC agent cannot participate in either checkpointing or propagating cross-net transactions\arp{basically a user using IPC wallet once we separate both}. 
+ 
 
-\paragraph{Compressed accounting.}
-In \cref{sec:components} we mentioned that the state of \sa contains accounting data. In the reference implementation, \sa contains as accounting data of the subnet a single variable representing the sum of all the individually locked funds at the parent which are dedicated to the child subnet, i.e. the subnet's \textit{circulating supply}. 
+\subsubsection{\sa} In the reference implementation, the subnet actor of subnet \subnetName{C} holds the state specific to subnet \subnetName{C}. 
 
-\paragraph{Content addressing.} The reference implementation makes use of IPFS-style content addressing, in that data is stored where relevant and referred to with a Multiformats-compliant content identifier (CID) elsewhere. In particular, CIDs that refer to information of a specific child's subnet can be retrieved through BitSwap from any of the participants with replicas of the subnet. This means that if a subnet only has faulty participants, the content referred to by this CID may not be available. However, as we will show, this is not a problem, as this would just mean that operations that have this subnet as source will not be resolved, not affecting the rest of the IPC tree.   
+\paragraph{Circulating supply.}
+In \cref{sec:components} we mentioned that the state of \sa contains accounting data. In the reference implementation, the \sa contains no accounting data as it does not hold the deposited funds. Instead, \gw contains a single variable representing the sum of all the individually locked funds at the parent which are accessible from the child subnet, i.e. the subnet's \textit{circulating supply}. 
 
-\paragraph{IPC agent and metadata.} In the previous sections, we considered that every parent-child pairing will have an independent IPC agent process. In fact, the implementation manages to execute one single IPC agent for the entire tree of subnets that may be of relevance to the participant. This process can be executed either as a daemon or as a command-line tool. In the latter case, the IPC agent cannot participate in either checkpointing or propagating cross-net transactions\arp{basically a user using IPC wallet once we separate both}. 
+\paragraph{Content addressing.} The reference implementation makes use of IPFS-style content addressing, in that data is stored where relevant and referred to with a Multiformats-compliant content identifier (CID) elsewhere. In particular, CIDs that refer to information of a specific child's subnet can be retrieved through BitSwap from any of the participants with replicas of the subnet. This means that if a subnet only has faulty participants, the content referred to by this CID may not be available. However, this is not a problem, as this would just mean that operations that have this subnet as source will not be resolved, not affecting the rest of the IPC tree. 
 
+\paragraph{\sa's state.} In particular, the state of \saOf{C} at \subnetName{P} contains: 
+\begin{itemize}
+    \item Consensus mechanism used at \subnetName{C} (always Trantor at the moment) 
+    \item Checkpointing data and rules
+    \item \subnetName{C}-specific slashing rules
+    \item \subnetName{C}'s finality verification
+    \item \subnetName{C}'s replica set
+    \item Address of \subnetName{C}'s \gw 
+    \item ID of the parent subnet \subnetName{P}
+    \item \subnetName{C}'s genesis block
+    \item \subnetName{C}'s status, whether inactive or active
+    \item \subnetName{C}'s circulating supply
+    \item \subnetName{C}-specific checks for the approval of deposits/release of funds and stake
+\end{itemize} 
+\paragraph{Inactive subnet.} If the total amount of collateral drops below the required minimum (e.g. by a set of replicas leaving the subnet), then the subnet enters an \emph{inactive} state. This means that the subnet can no longer interact with the rest of the active subnets registered in the \gw, until the minimum collateral is restored via deposits from replicas. In this case, though, users and remaining replicas can retrieve their funds by either (i) depositing enough funds as collateral to reactivate the subnet; or (ii) retrieving their funds thanks to the latest snapshot checkpointed at the parent.
 
-\subsection{Topdown transactions}
-Once the parent subnet orders and executes topdown transactions, the \gw updates its state by increasing a nonce specific for the child. The IPC agent then adds the respective child transactions to the cross-net transactions pool (referencing the same nonce). In order to prevent inconsistencies across replicas, the IPC agent generates a \pof by running an instance of an all-to-all broadcast that generates signed \emph{certificates} containing a supermajority of signatures from child validators\footnote{\add{an example of such a protocol can be found in Trantor's availability module.}\arp{In reality, atm the way this actually works is with local validity check after execution at the child replica, which can generate inconsistencies between updated and straggling replicas, but there's works to change this to what is described aboved: \url{https://github.com/consensus-shipyard/ipc-agent/issues/72}}}. In this all-to-all broadcast, validators broadcast the topdown transactions that they locally consider as valid (as participants run a local parent replica and the IPC agent is notified of changes to the local replica). This way, when a supermajority of correct child validators locally see and consider the corresponding transaction at the parent as final in their parent subnet, the rest of the validators can instead verify the certificate to update the state of the child subnet, preventing inconsistencies with participants running straggling parent replicas. After the IPC agent verifies this \prf, the IPC agent provides the transactions to the child replica for ordering and execution.
+We illustrate the interactions between \gw and \sa's states after introducing in~\cref{sec:gwrefimpl} the \gw as per the reference implementation.
+\subsubsection{\gw}
+\label{sec:gwrefimpl}
+The entry point of all functionality is the \gw, unlike in the high-level functionality described in Section~\ref{sec:functionality}. In the reference implementation, it is the \gw that receives the funds to be deposited for all subnets, and that releases the funds on withdrawals. It also holds the collateral of child replicas. The \gw then performs checks for the state change to take place, and then calls the \sa to perform any additional subnet-specific check that the particular subnet may implement.
 
+For example, let $u$ be a user with an account $a$ at a subnet \subnetName{P} that implements a chess platform. Suppose $u$ wants to join a tournament at subnet \subnetName{P/C\textsubscript{T}} that has a registration cost of $c$. To do so, $u$ joins the tournament via submitting at \subnetName{P} a transaction $tx=$ \subnetName{P}.\gw.\funcName{Deposit}\funcParam{(\subnetName{P/C\textsubscript{T}}, $c$)} signed with account $a$. However, the chess tournament restricts registration to accounts with a chess rating of over $1700$. This is a subnet-specific restriction defined at \saOf{C\textsubscript{T}}. In the reference implementation, the execution to \subnetName{P}.\gw.\funcName{Deposit}\funcParam{(\subnetName{P/C\textsubscript{T}}, $c$)} invokes a check on \subnetName{P}.\saOf{C\textsubscript{T}}.\funcName{Deposit}\funcParam{($a$, $c$)} that will return $true$ only if $a.rating> 1700$, and $false$ otherwise. If the call returns $false$, then the top-down transaction is not propagated to \subnetName{C\textsubscript{T}} and $u$ will not be able to play the tournament. Otherwise, $u$ will be able to join by depositing the cost $c$ in $\subnetName{P}$'s \gw.
+
+\paragraph{\gw's state.} The state of \subnetName{P}'s \gw consists of: 
+\begin{itemize}
+    \item \subnetName{P}'s ID
+    \item Minimum required total stake per child subnet
+    \item List of child subnets' IDs
+    \item Checkpoint period $\Delta$
+    \item List of children checkpoints
+    \item State required for the execution of cross-net transactions, including the \postoffice.
+\end{itemize} 
+
+ We detail in~\cref{sec:cnetrefimpl} the execution of cross-net transactions for the reference implementation.
+ 
+  \marko{frankly,  I am not following this... Please re-read and try to explain being more concrete. Examples help. }\arp{Rewrote, lmk if still not clear}
+
+\subsection{Cross-net transactions}
+
+\label{sec:cnetrefimpl}
+\paragraph{Postbox.} In IPC, a transaction in a subnet may trigger a state change in another subnet not immediately adjacent. The current reference implementation uses the \postoffice in each \gw to split cross-net transactions of this type into multiple atomic operations in the parent-child hierarchy. The cross-net transaction $tx$ is propagated to each immediately adjacent subnet along the path until it reaches its destination by traversing through the \postoffice of all intermediate subnets, via cross-net transactions $tx'(tx)$ containing $tx$ as payload. Once $tx'$ is ordered and executed at an intermediate subnet, the IPC agent does not create another cross-net transaction $tx''(tx)$ at the next subnet along the path, as someone will have to pay the fees for that new transaction, but instead leaves the transaction in the \postoffice of that intermediate subnet. Only once an account pays for the fees required to execute this step of the path, can $tx$ reach the \postoffice of the next subnet of the path to its destination.
+
+\paragraph{Cross-net queues.} Hence, in the current implementation, a transaction at the \postoffice has not been paid for, and it will not be propagated until an account pays for it. A cross-net transaction that has been paid for leaves the \postoffice to join a FIFO queue, known as either \emph{the \bqueue} or the \emph{\tqueue}. All three, \postoffice, \bqueue and \tqueue contain cross-net transactions and are part of the state of \gw, but only those transactions in either \tqueue or \bqueue are ready to be propagated.
+
+\paragraph{Example.} For example, suppose an actor in a child subnet \subnetName{$P_G/S_{P_1}/S_{C_1}$} triggers a state change in its uncle subnet \subnetName{$S_G/S_{P_2}$}. Then, the cross-net transaction $tx$ that represents that state change must reach the grandparent through the intermediate parent subnet $S_P$ that connects them. In the reference implementation, this means that first a bottom-up transaction $tx_{b_1}(tx)$ with $tx$ as payload, \subnetName{$S_{C_1}$} as source and \subnetName{$S_{P_1}$} as recipient is sent to \subnetName{$S_{P_1}$}'s \postoffice from \subnetName{$S_{C_1}$}'s \bqueue. Once $tx_{b_1}$ is ordered and executed at \subnetName{$S_{P_1}$}, an account needs to pay for the cost of moving $tx$ into \subnetName{$S_{P_1}$}'s \bqueue, creating a new transaction $tx_{b_2}(tx)$ with $tx$ as payload, \subnetName{$S_{P_1}$} as source and \subnetName{$S_{G}$} as recipient. Following, $tx_{b_2}$ is ordered and executed at $S_G$, reaching the \postoffice at $S_G$. Finally, once an account pays to create a transaction $tx_{t_1}(tx)$ with $tx$ as payload, \subnetName{$S_{G}$} as source and \subnetName{$S_{P_2}$} as recipient, can $tx_{t_1}$ be ordered an executed, meaning that $tx$ reaches its destination. 
+
+\paragraph{Nonce.} Once a subnet orders and executes cross-net transactions, the \gw updates its state by increasing a nonce specific for the recipient subnet (i.e. the parent if bottom-up or the specific child if top-down). The nonce is necessary to avoid replay attacks. We detail now the particularities of top-down and bottom-up transactions. 
+
+\subsubsection{Top-down transactions}
+
+\paragraph{\pof in top-down transactions.} In order to prevent inconsistencies across replicas, the IPC agent does not immediately propose the transaction to the child replica. Instead, the IPC agent batches top-down transactions in a \emph{\tcheckpoint} that are consistently broadcast to other replicas every $\Delta_T$ period. As such, the $\pof$ of a top-down transaction $tx$ is obtained once enough signatures containing at least a supermajority of the voting power from child replicas are received for a batch containing $tx$ (i.e. a certificate). In this consistent broadcast, replicas broadcast batches of top-down transactions that they locally consider as valid (as participants run a local parent replica and the IPC agent is notified of changes to the local replica), and they in turn sign a batch if they consider all transactions of the batch as valid. 
+
+\paragraph{Consistency across child replicas.} A participant running a straggling parent full node that receives a certificate for a batch as \prf, but that does not locally see all transactions of the batch as valid, can instead verify the \prf. Once the IPC agent verifies a certificate for a batch of transactions, the IPC agent provides the batch to the child replica for ordering and execution. 
+
+% This way, when a supermajority of correct child replicas locally see and consider the corresponding transaction at the parent as final in their parent subnet, the rest of the replicas can instead verify the certificate to update the state of the child subnet, preventing inconsistencies with participants running straggling parent replicas. 
     % \del{ In order to consider a transaction \tx at the parent as final, we use the fact that a participant has view into a version of the parent subnet (through its local parent replica process) \jorge{not sure what this means}. In this case, the \prf contains the block height~$h$ (and pointer to that block) at the parent subnet. A child replica then asserts in its parent that the state is final by checking its local version of the parent blockchain at height~$h$. If the local version at the parent replica did not reach height~$h$ yet, the child replica considers the state to currently be non-final/non-valid. The child replica checks again when the parent replica reaches height~$h$.}
 
-\subsection{Bottomup transactions}  
-\paragraph{Batching through the \gw.} The child subnet aggregates cross-net transactions from within its own subnet and those propagated from its children, and includes their CIDs in the next checkpoint. All related bottomup transactions are made via the \gw of the child. Bottomup transactions are batched there until it is time to checkpoint at the parent (specifically, every $\Delta$ child blocks). This way, the \gw serves as the single data structure storing bottomup transactions and the IPC agent only needs to monitor a single location to get all necessary information from the child subnet. Since \postoffice transactions are included in the checkpoint, the execution of the checkpoint also depends on the \postoffice functionality at the parent handling those transactions (recall that the parent's \postoffice is located at the parent's \gw). If the bottomup transactions sent in the batch along with the checkpoint fails, the atomic execution of the checkpoint will fail too.
+\subsubsection{Bottom-up transactions}  
+\paragraph{Batching at checkpoints.} The child subnet aggregates bottom-up transactions from within its own subnet and those propagated from its children, and includes their CIDs in the next checkpoint. The CIDs of these bottom-up transactions are placed in the \gw of the child. Bottom-up transactions are stored in the \gw of the child until it is time to checkpoint at the parent (specifically, every $\Delta$ child blocks). This way, the \gw serves as the single location for the CIDs of bottom-up transactions and the IPC agent only needs to monitor the \gw to get all necessary information from the child subnet. Since the CIDs of bottom-up transactions are included in the checkpoint, the execution of the checkpoint also depends on the validity of those transactions (recall that the parent's \postoffice is located at the parent's \gw). If the bottom-up transactions sent in the batch along with the checkpoint fail to execute, the execution of the entire checkpoint will fail.
 
-\paragraph{Cross-net transactions traversing subnets.} \add{In IPC, a transaction in a subnet may trigger a state change in another subnet for which there is a path via the parent. The current reference implementation uses the \postoffice in each \gw to split cross-net transactions of this type into multiple atomic operations in the parent-child hierarchy. The cross-net transaction $tx$ is propagated to each immediately adjacent subnet along the path until it reaches its destination by traversing through the \postoffice of all intermediate subnets, via cross-net transactions $tx'(tx)$ containing $tx$ as payload. Once $tx'$ is ordered and executed at an intermediate subnet, the IPC agent does not create another cross-net transaction $tx''(tx)$ at the next subnet along the path, but instead leaves the transaction in the \postoffice of that intermediate subnet. Only once an externally owned account (EOA) of that subnet creates $tx''$, paying for the fees required to execute this step of the path, can $tx$ reach the \postoffice of the next subnet of the path to its destination.}  
+ \paragraph{Reusing checkpoints' \pof.}
+Therefore, a child's transaction (or state) \tx is accepted at the parent as final by providing a \prf containing enough signatures amounting for at least $2/3$ of the voting power in the child running an instance of Trantor\footnote{The current implementation relies on collecting multiple signatures. A next step in the implementation road-map is to offer a threshold signature mechanism instead of using a multisig. For now, multisigs serve the purpose of an MVP implementation.}. This \pof is the same one used for checkpoints, as bottom-up transactions are batched there (see~\cref{sec:refimplfunc}). In other words, given transaction $tx$, the \prf($tx$) needed for bottom-up transactions is a CID to the latest block decided by the child's Trantor consensus protocol, which already contains a certificate to verify finality. The parent subnet considers the \prf valid if it contains signatures from replicas with at least $2/3$ of the voting power in the child. The voting power is measured according to what is stored in \sa for the epoch containing $tx$. 
 
-\add{In the current implementation, thus, a transaction at the \postoffice has not been paid for, and thus it will not be propagated until an EOA pays for it. A cross-net transaction that has been paid for leaves the \postoffice to join the \emph{cross-net registry}. Both contain cross-net transactions and are part of the state of \gw, but only those transactions in the cross-net registry are propagated by the \gw.}
-
-\add{For example, when an actor in a child subnet $S_C$ triggers a state change in its grandparent subnet $S_G$, the cross-net transaction $tx$ must reach the grandparent through the intermediate parent subnet $S_P$ that connects them. In the reference implementation, this means that first a bottomup transaction $tx_{b_1}(tx)$ with $tx$ as payload, $S_C$ as source and $S_P$ as recipient is propagated to $S_P$'s \postoffice from $S_C$'s cross-net registry. Once $tx_{b_1}$ is ordered and executed at $S_P$, an EOA needs to pay for the cost of moving $tx$ into $S_P$'s cross-net registry, creating a new transaction $tx_{b_2}(tx)$ with $tx$ as payload, $S_P$ as source and $S_G$ as recipient. Finally, $tx_{b_2}$ is ordered and executed at $S_G$, meaning that $tx$ reaches its destination.}  
-% \arp{Alfonso/Henrique: is it like this?} \arp{Questions regarding this for Alfonso: is checkpoint message registry just for bottom-up part of cross-net? why? who pays for topdown txs to be ordered and executed at child?} 
-
- \paragraph{Checking for Finality.}
-Therefore, a child's transaction (or state) \tx is accepted at the parent as final by providing a \prf containing enough signatures amounting for at least $2/3$ of the voting power in the child running an instance of Trantor\footnote{The current implementation relies on collecting multiple signatures. A next step in the implementation road-map is to offer a threshold signature mechanism instead of using a multisig. For now, multisigs serve the purpose of an MVP implementation.}.
- 
- In other words, given transaction $tx$, the \prf($tx$) needed for bottomup transactions is a CID to the latest block decided by the child's Trantor consensus protocol, which already contains a certificate to verify finality. The parent subnet considers the \prf valid if it contains signatures from validators with at least $2/3$ of the voting power in the child. The voting power is measured according to what is stored in \sa for the epoch containing $tx$. 
-
-
-\paragraph{Checkpointing.}
-\TODO{This must be updated} We show in~\cref{alg:chkpsimpl} the main design choices made by the reference implementation. A checkpoint is first triggered every $\Delta$ blocks decided at the child subnet. If the latest block decided meets this condition, and if the participant's child subnet is a validator according to the state stored at the parent, then the IPC agent starts computing the checkpoint as follows:
+\subsection{Functionality} 
+\label{sec:refimplfunc}
+\paragraph{Checkpointing.} We show in~\cref{alg:chkpsimpl} the main design choices of the reference implementation for the checkpointing functionality. A checkpoint is triggered every $\Delta$ blocks decided at the child subnet. If the latest block decided meets this condition, and if the participant's full node is a replica according to the state stored at the parent, then the IPC agent starts computing the checkpoint as follows:
 \begin{itemize}
-    \item The IPC agent obtains a state snapshot from the child's subnet.
-    \item The IPC agent obtains the CIDs of all new grandchildren's checkpoints, and of the bottomup transactions in the cross-net registry
+    \item The IPC agent obtains a state snapshot from the child's subnet. At the moment, the state snapshot is a CID to the latest decided block of the child's subnet that contains a checkpoint, as not all Trantor's blocks contain a checkpoint. The \pof of the checkpoint is the certificate of the block.
+    \item The IPC agent obtains the CIDs of all new grandchildren's checkpoints, and of the bottom-up transactions in the \bqueue.
     % \item The IPC agent computes the checkpoint $chkp$, compressing its state by computing only the additional changes from the latest checkpoint stored at the parent's SA, and creates a \pof(chkp)
-    \item The IPC agent computes the checkpoint, and creates a $\pof(chkp)$
-    \item The IPC agent submits $tx=P.\sa.Checkpoint(chkp, \pof(chkp))$
-    \item The parent subnet, upon ordering and executing $tx$, saves $chkp$ in the state. \TODO{Saves a CID after submitting it to IPFS? or the actual checkpoint?} \TODO{and updates also \gw with the new postbox transactions?}
+    \item The IPC agent computes the checkpoint \dataField{chkp}. Recall that the $\pof$ of the checkpoint is already the certificate of the latest decided block.
+    \item The IPC agent submits $tx=$\subnetName{P}.\saOf{C}.\funcName{Checkpoint}(\dataField{chkp}).
+    \item The parent subnet, upon ordering and executing $tx$, calls the \sa which verifies the \pof and if all checks pass then calls $\subnetName{P}.\gw.\funcName{Checkpoint}(\subnetName{P/C},\dataField{chkp})$ for the \gw to save the checkpoint in the state and execute all cross-net transactions batched with the checkpoint.
 \end{itemize}
 \TODO{Talk about control messages as part of the checkpoint (in text) as future work for garbage collection and gas cost}\\
 \begin{algorithm}[H]
 \footnotesize
-\caption{Checkpoints \impl \TODO{Fix formatting}}\label{alg:chkpsimpl}
+\caption{Checkpoints \impl \label{alg:chkpsimpl}}
   \DontPrintSemicolon
   \SetKwFunction{FMain}{Global}
   \SetKwProg{Pn}{Function}{:}{\KwRet}
@@ -66,49 +110,47 @@ Therefore, a child's transaction (or state) \tx is accepted at the parent as fin
   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
   \SetKwFor{UponKW}{upon}{do}{fintq}
    \Component{IPC agent}{
-   \UponKW{\texttt{newBlock} \text{from child subnet}}{
-        \If{\texttt{newBlock}.blockheight $\bmod$ $\Delta$ $=0$}{
-            \If{P.SA.isValidator(Self)}{
-                \textit{chkpData} $\gets$ \texttt{newBlock}$.GetCID()$;\;
-                \textit{gcChkps} $\gets$ query child's \gw for grandchildren's checkpoints \;
-                \textit{CrossnetTxs} $\gets$ \gw.CrossnetRegistry\;
-                \textit{chkp} $\gets$ \textit{createChkp}(\text{chkpData}, gcChkps, CrossnetTxs) %\tcp*[r]{compress state}
-                submit $P.\sa.Checkpoint(chkp)$\;
+   \UponKW{\dataField{newBlock} \text{from subnet \subnetName{C}}}{
+        \If{\dataField{newBlock}.\dataField{blockheight} $\bmod$ $\Delta$ $=0$}{
+            \If{\subnetName{P}.\saOf{C}.\funcName{isReplica}\funcParam{(Self)}}{
+                \dataField{chkpData} $\gets$ \dataField{newBlock}.\funcName{GetCID()}\;
+                \dataField{gcChkps} $\gets$ \subnetName{C}.\gw.NewChkps() \tcp*[r]{grandchildren's chkps}
+                \dataField{BUpTxs} $\gets$ \subnetName{C}.\gw.\dataField{BottomUpRegistry}\;
+                \dataField{chkp} $\gets$ \funcName{createChkp}(\dataField{chkpData, gcChkps, BUpTxs})\; %\tcp*[r]{compress state}
+                submit \subnetName{P}.\gw.\funcName{Checkpoint(\subnetName{P/C}, chkp)}\;
             }
         }
         }
   }
-  \Component{P.\sa.Checkpoint(chkp)}{
-    $P.\sa.verify(chkp)$\;\tcp*[r]{\pof is \texttt{newBlock}'s certificate}
-    $P.\gw.Checkpoint(P/C, chkp)$
-    }
-  \Component{P.\gw.Checkpoint(P/C, chkp)}{
-  Save $chkp$ in the state\;
-  Execute $tx,\  \forall tx\in chkp.CrossnetTxs$
+    \Component{\subnetName{P}.\gw.\funcName{Checkpoint}\funcParam{(\subnetName{P/C}, chkp)}}{
+  \If{\subnetName{P}.\saOf{C}.\funcName{Checkpoint}\funcParam{(chkp)}}{
+    Save \funcParam{chkp} in the state\;  
+    Execute \dataField{tx},  $\forall$ \dataField{tx} $\in$ \funcParam{chkp.\dataField{BUpTxs}}
+    Save \funcParam{chkp} in the state \arp{Why in both?}\;
+  }  
   }
+  \Component{\subnetName{P}.\saOf{C}.\funcName{Checkpoint}\funcParam{(chkp)}}{
+  \tcp*[l]{[subnet-specific treatment of checkpoints]}
+    \textbf{return} \subnetName{P}.\saOf{C}.\funcName{verify}\funcParam{(chkp)}\tcp*[r]{\pof is \texttt{newBlock}'s certificate}
+    % \subnetName{P}.\gw.\funcName{Checkpoint}(\funcParam{P/C, chkp})
+    }
+  % \Component{\subnetName{P}.\gw.\funcName{Checkpoint}\funcParam{(P/C, chkp)}}{
+  % Save \funcParam{chkp} in the state\;
+  % Execute \dataField{tx},  $\forall$ \dataField{tx} $\in$ \funcParam{chkp.\dataField{BUpTxs}}
+  % }
   
 \end{algorithm}
-\TODO{Talk about execute might require additional checks on P.\sa, such as withdrawals of collateral requires calling verification on any additional check that the \sa might define}
-\subsection{Other operations} 
-\TODO{Extend this part, but we are getting there. Also reformat section and include answers to Q4 on from Alfonso's sync}
-\paragraph{Create.} Subnets are created by instantiating a new \sa and registering the \sa in \gw. When the \gw contains a minimum amount of collateral for \sa (where enough is user defined in the \sa \arp{Question: is it?}), the subnet can be registered in \gw. This registration in the \gw is what allows this subnet to interact to the rest of subnets registered in \gw through IPC, and thus we refer to it as the creation of the subnet. 
-\paragraph{Join and leave.} Validators join the validator set by depositing the required collateral in the \gw, collateral that they recover by leaving the subnet (provided they have not been slashed before). If the amount of collateral drops below the required minimum (e.g. by a validator, or validators, leaving the subnet), then the subnet enters an \emph{inactive} state. This means that the subnet can no longer interact with the rest of the active subnets registered in the \gw, until the minimum collateral is restored via deposits from validators.
-\paragraph{Removing a subnet and retrieving funds.} An active subnet can be removed by a majority of current validators, releasing all the collateral and the circulating supply back at the parent. This prevents validators and users from having their funds stuck at the \gw once enough validators recover their collateral and leave the subnet inactive. In this case, though, users and remaining validators can retrieve their funds by either (i) depositing enough funds as collateral as needed to reactivate the subnet; or (ii) retrieving their funds thanks to the latest snapshot checkpointed at the parent. 
-\paragraph{Slashing.}\arp{Nothing atm, should we even mention it then in previous sections? Option2: describe here some of the sketches in issues of ipc-agent (ipc-actors?) repos (“next” label)}
+Although omitted in~\cref{alg:chkpsimpl}, executing each \dataField{tx} in \funcParam{chkp.}\dataField{BUpTxs} may require additional checks. An example is a withdrawal of funds or a release of collateral for a replica leaving the subnet, that will require a call to check validity of the withdrawal transaction by calling the subnets \saOf{C}, in addition to the checks \gw already performs on withdrawals and release of collateral. Recall that the checkpoint operation is only atomically executed if all transactions of the batch are valid and are atomically executed as well.
+
+\paragraph{Create.} Subnets are created by instantiating a new \sa and registering the \sa in \gw. When the \gw contains a minimum amount of collateral stored associated with \sa (where enough is defined in the \gw), the subnet can be registered in \gw. This registration in the \gw is what allows this subnet to interact with the rest of subnets registered in IPC through \gw, and thus we refer to it as the creation of the subnet. 
+\paragraph{Join and leave.} Replicas join the replica set by depositing the required collateral in the \gw (the minimum amount of collateral per replica is defined in the \sa), collateral that they recover by leaving the subnet (provided they have not been slashed before).
+ 
+\paragraph{Slashing.} The IPC team is currently working on designing and implementating a mechanism for slashing. The current MVP does not natively support slashing at the parent. 
+\paragraph{Removing a subnet and retrieving funds.} An active subnet can be removed by a majority of current replicas, releasing all the collateral and the circulating supply back at the parent. This provides suers and replicas with an orderly way of retrieving their funds at the aprent, other than having their funds retrievable from the latest snapshot at the parent once enough replicas recover their collateral and leave the subnet inactive.
 
 \subsection{Incentives} 
-At the moment, validators get rewarded for executing the checkpoint algorithm by charging an IPC fee on all transactions traversing the postbox. This incentivizes validators in participating on the checkpointing functionality, even if that costs them a fee to be paid for the transaction at the parent. \jorge{in a given checkpointing period, which validators charge the fees, which validators pay for the checkpoint, and are these the same? in other words, are incentives tightly aligned?}
-\TODO{TBC. No governance account, but \textbf{participation incentives} by: 
-    \begin{enumerate}
-        \item Additional IPC fee for validators to relay
-        \item Incentivizing checkpoint submission as a result of batching with other cross-net transactions (which contain the IPC fees), further justifying checkpoints being stored at \gw.
-        \item Keeping Stake at SA and slashing through fraud proofs
-    \end{enumerate} 
-}
-
-\TODO{Deposits, withdrawals, check collateral conditions? something else worth mentioning? How are subnets created in the reference impl, and killed? how does one join/leave (something worth mentioning)?}
-\TODO{When is collateral checked, and what happens if collateral not met?}
-\TODO{Nodes are just rewarded with IPC hardcoded base fees. Are they ever punished? how? (lost collateral by equivocation, checkpoint omission?, removed from replica set?}
+In the current reference implementation, replicas get rewarded for executing the checkpoint algorithm by charging an IPC fee on all transactions forwarded from the cross-net registry. This incentivizes replicas in participating on the checkpointing functionality, even if that costs them a fee to be paid for the transaction at the parent. All transactions batched with checkpoints must contain a fixed amount known as IPC fee (on top of the standard transaction fee required for ordering and execution of the transaction in the corresponding subnet). The IPC fee is only paid once the checkpoint is ordered and executed, which requires collaboration from at least a supermajority of replicas for the reward to be paid. However, no specific incentives are given at the moment to the submitter(s) of the checkpoint transaction, or to the signers of the checkpoint certificate, in that the sum of IPC fees of the batch is evenly distributed proportionally to the stake of each replica set. This can lead to equilibria in which some participants are incentivized neither to submit checkpoints nor participate in generating a 
+\pof. We are currently working in more complex incentive-compatible mechanisms that ensure rational participants will follow the protocol for the reference implementation, via rewards and slashing.
 % \del{ The \impl makes certain implementation decisions that affect the design of checkpoints, particularly:
 % \begin{enumerate}
 % \item The \gw stores the checkpoints from all subnets, instead of having each subnet store their respective checkpoints at their specific \sa.
@@ -117,4 +159,4 @@ At the moment, validators get rewarded for executing the checkpoint algorithm by
 % \end{enumerate}
 % }
 
-% \del{\TODO{Discuss/verify} These implementation decisions come with a number of advantages. First, parent and child subnets periodically synchronize following predictable events. Second, having the \gw store all checkpoints easily enables batching of checkpoint transactions with cross-net transactions. Third, this batching inherently provides participation incentives for validators to submit checkpoints, as they will be rewarded with the IPC fee from cross-net transactions.\guy{I would say that the third point is a problem not an advantage. It entangles checkpointing with cross-net transactions and might make checkpoints depend on the cross-net transactions for incentivation.} \arp{Agreed, but iiuc we will not have other incentives by M2/M3 for checkpoints, so some incentives are better than none at all for checkpoints. But yes, down the road we should work on independent checkpoint incentives (governance account).}}
+% \del{\TODO{Discuss/verify} These implementation decisions come with a number of advantages. First, parent and child subnets periodically synchronize following predictable events. Second, having the \gw store all checkpoints easily enables batching of checkpoint transactions with cross-net transactions. Third, this batching inherently provides participation incentives for replicas to submit checkpoints, as they will be rewarded with the IPC fee from cross-net transactions.\guy{I would say that the third point is a problem not an advantage. It entangles checkpointing with cross-net transactions and might make checkpoints depend on the cross-net transactions for incentivation.} \arp{Agreed, but iiuc we will not have other incentives by M2/M3 for checkpoints, so some incentives are better than none at all for checkpoints. But yes, down the road we should work on independent checkpoint incentives (governance account).}}
