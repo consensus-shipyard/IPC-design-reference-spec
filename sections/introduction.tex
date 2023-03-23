@@ -3,7 +3,7 @@
 
 A blockchain system is a platform for hosting replicated applications (represented by smart contracts in Ethereum [??] or actors in Filecoin [??]).
 A single system can, at the same time, host many such applications,
-each of which containing logic for processing inputs (also known as transactions, requests, or messages) and updating its internal state accordingly.
+each containing logic for processing inputs (also known as transactions, requests, or messages) and updating its internal state accordingly.
 The blockchain system stores multiple copies of those applications' state and executes the associated logic.
 In practice, applications are largely (or even completely) independent.
 This means that the execution of one application's transactions rarely (or even never) requires accessing the state of another application.
@@ -41,7 +41,7 @@ Each subnet runs its own consensus protocol and maintains its own ordered transa
 Conversely, one parent can have arbitrarily many subnets, called \emph{children}, associated with it.
 
 This tree of subnets expresses a hierarchy of trust.
-All components of a subnet and all users using it are assumed to fully trust their parent and regard it as the ultimate source of truth.
+All components of a subnet and all users using it are assumed to fully trust their parent \akosh{Maybe worth hinting at why we can assume such a thing (e.g. running a full node on the parent); at least I think some readers might start thinking about adversarial scenarios to break this assumption.} and regard it as the ultimate source of truth.
 Note that, in general, trust in all components of the parent subnet is not required, but the parent system as a whole is always assumed to be correct (for some definition of correctness specific to the parent subnet) by its child.
 
 To facilitate the interaction between different subnets, \ipc provides mechanisms for inter-subnet communication.
@@ -66,5 +66,8 @@ In particular, it enables
 \end{itemize}
 
 In the rest of this document, we describe \ipc in detail.
-In \cref{sec:preliminaries} we define...
-\TODO{Finish this when all sections are stable.}
+\Cref{sec:example-use-case} introduces an sample use case of \ipc that we use throughout as a running example.
+In \Cref{sec:preliminaries} we define preliminary concepts and assumptions used by \ipc.
+\Cref{sec:functionality,sec:components} respectively describe \ipc's functionality in terms of the interaction between a parent and a child subnet and summarize the high-level implementation of the two actors \ipc uses to enable this interaction.
+We discuss participants' incentives to spend the resources required for inter-subnet interaction in \Cref{sec:incentives} and related work in \Cref{sec:related-work}.
+Finally, our implementation of \ipc and its deviations from the general design are laid out in \Cref{sec:ref-impl}.

@@ -6,6 +6,8 @@
 This section describes, at a high level, the implementation of \ipc's main components: the \gw, \sa, and the \ipc agent.
 
 \subsection{\gwFull (\gw)}
+\label{sec:gw}
+
 The \gw is an actor that exists in every subnet in the \ipc hierarchy and contains all information and logic the subnet itself needs to hold in order to be part of \ipc.
 The functionality of the \gw described in \Cref{sec:functionality} is summarized in \Cref{alg:gw}.
 The \gw holds:
@@ -13,7 +15,7 @@ The \gw holds:
     \item The names of its own, its parent's and its children's subnets
 
     \item The predicate used to evaluate the validity of \pofsFull.
-    This predicate will be applied to {\pof}s from both the parent subnet and the child subnets.
+    This predicate will be applied to {\pof}s from the parent subnet.
     It is specific to the subnets (and the protocols they use) involved in interactions with this subnet.
 
     \item The \postoffice storing all the outgoing cross-net transactions, along with their routing metadata (original source and ultimate destination subnets).
@@ -100,6 +102,7 @@ The \gw holds:
 \end{algorithm}
 
 \subsection{\saFull (\sa)}
+\label{sec:sa}
 
 The \saFull (\sa) is the actor in the parent subnet's replicated state that governs a single child subnet.
 It stores all information about the child subnet that the parent needs and logic that manipulates it.
@@ -115,7 +118,7 @@ The \sa holds:
     \item The amount of funds that are locked for use in the child subnet (\var{lockedFunds}).
     Deposits increase and withdrawals decrease this value accordingly.
     Keeping track of this value is only necessary for enforcing the firewall property, since a misbehaving child subnet might claim to withdraw more than has been deposited in it.
-    Thus before withdrawing, the \sa consults this value to make sure that the total amount of withdrawals never exceeds the amount previously deposited.
+    Thus, before withdrawing, the \sa consults this value to make sure that the total amount of withdrawals never exceeds the amount previously deposited.
 
     \item Snapshots of the child subnet's replicated state obtained through invocations of the \funcName{Checkpoint} function (\var{checkpoints}).
 
