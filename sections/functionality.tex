@@ -2,39 +2,70 @@
 \label{sec:functionality}
 
 We now focus on the interaction between two subnets in a parent-child relation, which is the basic building block of the recursive \ipc hierarchy.
-IPC interface exposes the following functionalities:
+The IPC interface exposes the following functionalities:
 \begin{enumerate}
 
-    \item Creating child subnets in the IPC hierarchy.
-    \item Depositing funds from an account in a subnet to an account in its child.
-    \item Withdrawing funds from an account in a subnet to an account in its parent.
-    \item Checkpointing a subnet's replicated state in the replicated state of its parent.
-    \item Propagating cross-net transactions.
-    \item Slashing misbehaving child replicas.
-    \item Removing child subnets from the IPC hierarchy.
-    \item Managing proof-of-stake subnets, exposing functions for adding and removing replicas, managing the associated collateral, and slashing of provably misbehaving replicas.
+    \item Creating child subnets in the IPC hierarchy.\\
+    \emph{E.g., when starting a new game on the gaming platform.}
+    
+    \item Depositing funds from an account in a subnet to an account in its child.\\
+    \emph{E.g., when a player tops up the balance of their account on the gaming platform.}
+    
+    \item Withdrawing funds from an account in a subnet to an account in its parent.\\
+    \emph{E.g., when a player withdraws money they won in a tournament.}
+    
+    \item Checkpointing a subnet's replicated state in the replicated state of its parent.\\
+    \emph{E.g., after every 100 blocks of transactions applied to the gaming platform's subnet.}
+    
+    \item Invoking actor functions across subnets, i.e., the replicated logic of one subnet acting as a client of another subnet.\\
+    \emph{E.g., when a game finishes and its the involved players' rankings are automatically updated.}
+    
+    \item Removing child subnets from the IPC hierarchy.\\
+    \emph{E.g., when a game fihishes, rankings have been updated, and the state of the game can be disposed of.}
+    
+    \item Managing proof-of-stake subnets, exposing functions for adding and removing replicas, managing the associated collateral, and slashing of provably misbehaving replicas.\\
+    \emph{E.g., when mutually distrusting players play together.}
 \end{enumerate}
 In the following, we describe each functionality in detail, introducing the functions of the \gw and \sa through which this functionality is exposed
 and the patterns in which the users and the \ipc agent invoke them via transactions.
-We summarize those components and their implementation in \Cref{sec:components}.
-For clarity, this section does not deal with the incentives for participants to run \ipc agents or subnet replicas to communicate with it.
-We defer the discussion of incentives to \Cref{sec:incentives}.
 
 \subsection{Creating a child subnet}
 \label{sec:create}
 
 To create child subnets, the \gw exposes the following function.
 \begin{align*}
-    \gw.&\funcName{CreateChild}(\funcParam{subnetName, params})    
+    \gw.&\funcName{CreateChild}(\funcParam{subnetName})
 \end{align*}
-Any user or actor of a subnet \subnetName{P} can create a new subnet \subnetName{P/C} by submitting a transaction \funcNameFull{P}{\gw}{CreateChild}(\subnetName{C}, \funcParam{params}),
-where \funcParam{params} is a data structure containing all subnet-specific parameters,
-such as the used consensus protocol, rules for joining the subnet, definitions and evaluation logic for {\pom}s and {\pof}s, and slashing policies.
-This results in the creation of a new \saFull \saOf{C} in \subnetName{P} governing the subnet \subnetName{P/C}, initialized with \funcParam{params}.
+Any user or actor of a subnet \subnetName{P} can create a new child subnet \subnetName{P/C} by
+\begin{enumerate}
+    \item creating a new instance of the \saFull \saOf{C} and
+    \item submitting a transaction \funcNameFull{P}{\gw}{CreateChild}(\subnetName{C}).
+\end{enumerate}
 
-The subnet is considered created as soon as \saOf{C} is created.
+The new actor \saOf{C} must configured with all the subnet-specific parameters relevant for governing the new subnet.
+These would usually include the used consensus protocol, rules for joining the subnet, definitions and evaluation logic for {\pom}s and {\pof}s, and slashing policies.
+From the perspective of the \ipc hierarchy, the subnet is considered created as soon as \saOf{C} is created.
 The subnet itself need not necessarily be operational at this moment,
 as the parent subnet always has a passive role when it comes to interacting with it.
+
+\begin{example}
+\label{ex:create-game-subnet}
+
+Imagine that a player wants to create a game subnet to play against 3 opponents,
+such that each player will run their own replica in the game subnet (i.e., their own copy of the game server).
+As an incentive for honest behavior, the player decides that the child subnet will be PoS-based (see \Cref{sec:pos-subnets}),
+where each replica must be backed by a minimal collateral of 10 coins that would be slashed (and, say, redistributed to the other players) if the replica is caught misbehaving (see \Cref{sec:slash}).
+
+To achieve this, the player creates a subnet actor governing a child subnet that allows replicas to join only if at least 10 of collateral are associated with them
+stops accepting new collateral after 4 replicas (the player and 3 opponents) reach the threshold of 10 coins.
+The player then registers the new subnet through a \funcNameFull{P}{\gw}{CreateChild} transaction, starts their own replica of the game server (we assume the game server is implemented such that it can be replicated and run as a subnet)
+and waits for other players's replicas to join (see \Cref{sec:staking-collateral}).
+
+Note that, since the subnet actor is created by the user, its initial state and logic can be configured arbitrarily.
+For example, the \sa could easily be configured with other admission policies (only players with a game ranking within a defined range)
+or slashing policies (penalize misbehaving replicas by the backing player loosing not just coins, but also their position in a game-specific ranking system).
+
+\end{example}
 
 \subsection{Depositing funds}
 \label{sec:deposit}
@@ -56,26 +87,33 @@ involves the following steps.
     \item The owner of \accountNameFull{P}{a} submits, using their wallet, a transaction\\
     \tx{tx} = \funcNameFull{P}{\saOf{C}}{Deposit}(\funcParam{amount}, \accountName{b}).
     
-    \item \subnetName{P} orders and executes \tx{tx}, transferring \funcParam{amount} coins from \accountName{a} to \saOf{C}.%
-    \footnote{For simplicity of presentation, we always assume that transactions are properly signed by the owner of the account from which coins are being spent,
-    that that account has sufficient balance, and in general, that the transactions passes all validity checks that we assume the subnet to perform.}
+    \item \subnetName{P} orders and executes \tx{tx}, transferring \funcParam{amount} coins from \accountName{a} to \saOf{C}.
     
-    \item When \subnetName{P}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P/C}.\gw, which contains the \pof verification logic),
-    the \ipc agent constructs a {\pof}(\tx{tx}).%
-    \footnote{The exact content of the \pof and the way it is constructed depends on the implementation of the subnet.
-    It might contain, for example, a quorum of replica signatures or a Merkle proof of inclusion.
-    The \ipc agent may construct it by simply observing the subnet's replicated state, or by exchanging messages with the subnet's replicas in a dedicated \pof-construction protocol.}
+    \item \label{item:deposit-step-create-pof}
+    When \subnetName{P}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P/C}.\gw, which contains the \pof verification logic),
+    the \ipc agent constructs a {\pof}(\tx{tx}).
     
-    \item The \ipc agent submits a transaction\\
+    \item \label{item:deposit-step-submit-pof}
+    The \ipc agent submits a transaction\\
     \tx{tx'} = \funcNameFull{P/C}{\gw}{MintDeposited}(\funcParam{amount}, \accountName{b}, {\pof}(\tx{tx})).
     
     \item \subnetName{P/C} orders and executes \tx{tx'}, which results in minting \funcParam{amount} new coins and adding them to the balance of \accountNameFull{P/C}{b}.
     
 \end{enumerate}
 
-After all the above steps are performed, the newly minted \funcParam{amount} of coins at the child is backed by the analogous locked amount at \subnetName{p}.\saOf{C}.
+After all the above steps are performed, the newly minted \funcParam{amount} of coins at the child is backed by the analogous locked amount at \subnetName{P}.\saOf{C}.
 However, those coins can effectively only be used by the owner of \accountNameFull{P/C}{b},
 since \subnetName{P}.\saOf{C} will not transfer its coins within \subnetName{P} until they are burned in \subnetName{P/C} during a withdrawal operation (see below).
+
+\begin{example}
+\label{ex:deposit}
+
+Imagine that a player wants to start using the gaming platform (running on the subnet \subnetName{P/C}), but only has funds in an account \accountNameFull{P}{a} in the parent subnet.
+To be able to join games that require a collateral (as in \Cref{ex:create-game-subnet}), the player decides to fund their account \accountNameFull{P/C}{b} with 20 coins.
+Thus, the player submits a \funcNameFull{P}{\saOf{C}}{Deposit(20, \accountName{b})} transaction, starts an \ipc agent process that performs steps \ref{item:deposit-step-create-pof} and \ref{item:deposit-step-submit-pof} above,
+and waits until the funds appear on \accountNameFull{P/C}{b}.
+
+\end{example}
 
 % We show in Algorithm~\ref{alg:deposit} the pseudocode to implement the functionality. 
 
@@ -136,15 +174,20 @@ involves the following steps.
 \begin{enumerate}
 
     \item The owner of \accountNameFull{P/C}{b} submits, using their wallet, a transaction\\
-    \tx{tx} = \funcNameFull{P/c}{\gw}{Withdraw}(\funcParam{amount}, \accountName{a}).
+    \tx{tx} = \funcNameFull{P/C}{\gw}{Withdraw}(\funcParam{amount}, \accountName{a}).
     
     \item \subnetName{P/C} orders and executes \tx{tx}, burning \funcParam{amount} coins from \accountName{b}.%
     
     \item When \subnetName{P/C}'s replicated state that includes \tx{tx} becomes final (for some subnet-specific definition of finality provable to \subnetName{P}.\saOf{C}),
     The \ipc agent constructs a {\pof}(\tx{tx}).
     
-    \item The \ipc agent submits a transaction\\
-    \tx{tx'} = \funcNameFull{P}{\gw}{ReleaseWithdrawn}(\funcParam{amount}, \accountName{a}, {\pof}(\tx{tx})).
+    \item The \ipc agent submits a transaction%
+    \footnote{In a practical implementation, instead of submitting a separate transaction for each withdrawal,
+    the \ipc agent may submit multiple withdrawals batched in a single transaction,
+    with a single \pof proving the finality of the child state in which all the corresponding funds have been burned.
+    This optimizes both performance and cost (transaction fees) at the parent.
+    Our implementation applies this optimization, further combined with checkpoints.}\\
+    \tx{tx'} = \funcNameFull{P}{\saOf{C}}{ReleaseWithdrawn}(\funcParam{amount}, \accountName{a}, {\pof}(\tx{tx})).
     
     \item \subnetName{P} orders and executes \tx{tx'}, which results in \subnetName{P}.\saOf{C} transferring \funcParam{amount} coins to account \accountNameFull{P}{a}.
     
@@ -153,6 +196,15 @@ involves the following steps.
 The above procedure ensures that the locked \funcParam{amount} at the parent is not released until the child has already burned the minted \funcParam{amount} of coins.
 The \subnetName{P}.\saOf{C} actor ensures (by verifying the associated \pof) that the coins have been burned in \subnetName{P/C}
 before releasing the corresponding \funcParam{amount} back into circulation in \subnetName{P}.
+
+\begin{example}
+\label{ex:withdrawal}
+A player might want to stop using the gaming platform and withdraw all the funds back to the parent subnet, in order to spend them on something else.
+They still have 20 coins on their account \accountNameFull{P/C}{b} that they want to transfer back to \accountNameFull{P}{a}.
+The player performs the withdrawal by submitting a transaction \funcNameFull{P/C}{\gw}{Withdraw(20, \accountName{a})},
+starts an \ipc agent process to perform the necessary inter-subnet communication, and waits until the coins arrive at \accountNameFull{P}{a}.
+(The player might need to spend a part of the 20 coins on fees for both the \funcName{Withdraw} and the \funcName{ReleaseWithdrawn} transactions.)
+\end{example}
 
 % OLD VERSION
 % A withdrawal is a transfer of funds from an account \src in the child subnet $P/C$ to an account \dest in the parent subnet $P$.
@@ -333,7 +385,7 @@ Since, in general, we only rely on IPC Agents to be able to submit transactions 
 an IPC agent only propagates the transaction to the parent or child, depending on which is next along the shortest path from $\subnetName{S}_1$ to $\subnetName{S}_2$ in the IPC hierarchy.
 After such ``one hop``, the transaction is again placed in the \postoffice of the parent / child, and the process repeats until the transaction reaches its destination subnet.
 
-More concretely, we illustrate the propagation of cross-net transaction using an example where an actor subnet \subnetName{P/A}
+More concretely, we illustrate the propagation of a cross-net transaction using an example where an actor in subnet \subnetName{P/A}
 is sending a cross-net transaction \tx{tx} to its "sibling" subnet \subnetName{P/B}.
 \tx{tx} is first propagated from \subnetName{P/A} to its parent \subnetName{P}, which, in turn, propagates it to its other child \subnetName{P/B}.
 We use the function \gw.\funcName{Dispatch} in a subnet to announce that the transaction is ready to be propagated
@@ -368,7 +420,13 @@ and the function \gw.\funcName{Propagate} to notify a subnet about a cross-net t
 
 \end{enumerate}
 
+\begin{example}
 
+In our gaming example, imagine that a game (running in its own subnet that is a child of the gaming platform's subnet) has finished and the ranking of the involved players needs to be updated.
+The game server is implemented as an actor on the game's own subnet, while the gaming platform (storing the player ranking tables) is an actor of its parent.
+To update the ranking, the game actor would use a cross-net transaction to inform the platform actor about the results of the game and the platform actor would update the rankings accordingly.
+
+\end{example}
 
 % The implementation of the \gw's \emph{Propagate} function is sketched in \Cref{alg:po}.
 
@@ -414,22 +472,42 @@ TODO
 % A child subnet $P/C$ can be removed from its parent $P$ through a transaction invoking $P.\gw.RemoveChild(P/C)$. \add{This transaction effectively deregisters the subnet from the IPC hierarchy. We detail further how to remove a child subnet for the reference implementation in~\cref{sec:ref-impl}.}
 
 \subsection{Proof-of-stake subnets}
+\label{sec:pos-subnets}
 
-\ipc provides specialized functionality for subnets based on proof-of-stake (PoS).
-A child subnet can leverage the parent subnet's coins to serve as collateral disincentivizing the child's replicas from misbehaving.
-In such a case, the \sa governing the PoS-based child subnet maintains the child's membership
--- the list of replicas the child subnet consists of, along with the amount of collateral associated with each of them.
+% \arp{I do not think we should particularize in PoS subnets. We just require a wrapper of any blockchain into single finality (with assumption on PoF for PoW-style blockchains after x amount of blocks). For example, for non-PoS children, the IPC agent can require joining and leaving as replica in order for a withdrawal/cross-net/checkpoint from a replica to be valid (even at the child itself, if replica in PoW child subnet creates block but replica not part of membership according to \sa, block is rendered invalid). Slashing can be performed on PoW replicas this way as well (i.e. time-lock withdrawals/release of funds $+$ synchrony). So these operations are not really PoS-specific. The only thing that is not immediately if not PoS is a direct mapping between voting rights (amount of work in PoW) and collateralized amount (this can be solvable limiting amount transferred in blocks for added security, or other measures, for example), but besides it being technically possible, it is also kind of ok since the collateral in PoW is anyways the cost to produce blocks.}
+% \matej{I agree that, technically, some of the concepts around collateral and slashing could be, in some way, applied to non-PoS subnets,
+% even though I'd argue that it'd be quite a stretch in practice in my opinion.
+% Unless you strongly oppose calling this PoS features, I'd suggest staying with the current approach, mostly for time reasons,
+% and we can refine / generalize later when we have other critical things sorted out.
+% Especially since we do say that the staked collateral determines the voting power, I think it's completely fair to call it PoS.}\arp{Time shortage is a valid reason, but note that we do not require that collateral determines voting power (we do not even conceptually require a minimum amount of collateral at the parent for the child to run its consensus protocol, same way we do not require any specific slashing rule), which adds to the mnuch simpler requirement of single finality (or capped finalization with asumption of single finality, like in Filecoin as rootnet). Let us leave it like this for now and modify later if reused with more time} 
+
+In order to disincentivize replicas of a subnet from misbehaving, \ipc provides a mechanism for conditioning a replica's participation in the child subnet on \emph{collateral} in a proof-of-stake fashion.
+To this end, the \sa can associate each replica of the child subnet with a collateral.
+Replicas must transfer this collateral to the \sa, and the \sa only releases the collateral back once the corresponding replica stops participating in the subnet. The way in which the collateral associated with replicas impacts the functioning of the child is subnet-specific.
+
+If a child replica provably misbehaves, the proof of such misbehavior can be submitted as a transaction to the \sa (invoking its \emph{Slash} function).
+The \sa then decreases the amount of collateral associated with the offending replica in accordance with its (subnet-specific) slashing policy.
+
+Note that collateral is different from funds deposited for use in the child subnet.
+Unlike the deposited funds, collateral is not made available in the child subnet
+and stays in the parent's \sa until the associated replica stops participating in the subnet, either by leaving or by being slashed.
+
+The advantage of this approach is that a child subnet can leverage funds in the parent subnet to serve as collateral.
+In case of provable misbehavior even of replicas that have gained complete power over the child subnet (e.g., by having staked most of the collateral),
+those replicas can still be slashed at the parent.
+It also prevents long-range \cite{} and similar attacks by maintaining membership information (sometimes also referred to as power table) of the child subnet at the parent.
 The membership saved in the \sa's state defines the ground truth about what replicas the child subnet should consist of,
 as well as their relative voting power (proportional to the staked collateral) in the underlying ordering protocol.
-The child subnet observes the state of the \sa in the parent and reconfigures accordingly.
+The child subnet observes the state of the \sa in the parent and, when the membership information changes, reconfigures accordingly.
 
-\ipc provides the following functionality for managing PoS-based subnets:
+Since we expect PoS-based child subnets to become very common,
+\ipc provides the following native functionality for managing PoS-based subnets:
 \begin{itemize}
     \item Manipulate the membership by staking and releasing collateral associated with replicas
     \item Slashing, where \ipc permanently removes / redistributes a part of the collateral associated with a provably misbehaving replica (e.g., one that sends conflicting messages in the ordering protocol)
 \end{itemize}
 
-\TODO{Matej: Finish the rest of this subsection in the same style as the previous subsections.}
+\Cref{ex:create-game-subnet} provides a concrete case of where and how PoS-based subnets can be used.
 
 \subsubsection{Staking collateral}
 \label{sec:staking-collateral}
@@ -491,7 +569,7 @@ The following functions are involved in releasing collateral:
     \sa.&\actorName{ReleaseCollateral}(\funcParam{membership, \pof})
 \end{align*}
 
-Let \accountNameFull{P}{a} be an account that has staked collateral for a \funcParam{replica} in a PoC-based subnet \subnetName{P/C}.
+Let \accountNameFull{P}{a} be an account that has staked collateral for a \funcParam{replica} in a PoS-based subnet \subnetName{P/C}.
 The procedure for releasing collateral is as follows.
 
 \begin{enumerate}
@@ -549,12 +627,29 @@ Slashing a misbehaving \funcParam{replica} of a PoS-based subnet \subnetName{P/C
     constructs a Proof of Misbehavior (\funcParam{PoM}) (e.g., a data structure containing the two contradictory messages signed by \funcParam{replica}),
     and submits the transaction \tx{tx} = \funcNameFull{P}{\saOf{C}}{Slash}(\funcParam{replica}, \funcParam{PoM})
 
-    \item Upon ordering \tx{tx}, \subnetName{P}.\saOf{C} applies evaluates the \funcParam{PoM} against \funcParam{replica}
+    \item Upon ordering \tx{tx}, \subnetName{P}.\saOf{C} evaluates the \funcParam{PoM} against \funcParam{replica}
     and adapts its associated collateral accordingly, resulting in a new membership for \subnetName{P/C}.
 
     \item Updating the membership of \subnetName{P/C} and subsequent reconfiguration proceeds exactly as in \Cref{sec:staking-collateral}, from \Cref{item:update-membership} on.
 
 \end{enumerate}
+
+\begin{example}
+Imagine the setting from \Cref{ex:create-game-subnet}, where a player creates a PoS-based subnet for a game of 4 players with a minimal collateral of 10 coins.
+Suppose that one of the players makes a move in the game, but later realizes that it would be beneficial to revert that move.
+What is more, the majority of other players would also benefit from the game state being reverted to the state just before the move occurred.
+Those players might collude and agree off-band to revert their replicas of the game server to an older state,
+and propose (in the child's ordering protocol) a different transaction to be ordered instead of the one containing the original game move.
+
+However, the system (concretely, the \saFull) is configured such that the initial proposal of the original transaction,
+together with the new proposal of the ``replacement'' transaction (both signed by the proposing replica),
+constitute a \pom that can be verified by the \sa.
+Any honest player that locally logs all proposals can thus submit a \funcNameFull{P}{\sa}{Slash} transaction, with the offending replica and the \pom as arguments,
+receiving (in the parent subnet) a part of the collateral associated with the offending replica.
+Moreover, if the child subnet's protocol allows to prove that a replica supported
+(in some protocol-specific way -- imagine signed PBFT prepare messages)
+more than one proposal for the same block height, the other colluding replicas can also be slashed.
+\end{example}
 
 % OLD VERSION
 % Contrary to misbehaviors at a rootnet (a subnet with no parent), where misbehavers sucessfully perform their attack without escrow available, some misbehaviors at the child can be resolved at the parent subnet, provided the misbehavers have not left the subnet. For this reason, a slashing is notified first at the parent, and reconciled at the child later on. In particular, a slash on provably malicious validators of a child subnet is performed as follows:

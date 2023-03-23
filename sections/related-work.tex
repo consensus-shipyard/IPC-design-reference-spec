@@ -1,27 +1,74 @@
 \section{Related Work}
+\label{sec:related-work}
+    \TODO{Structure is there, TODO add citations (and add them throughout document too)}
+    \subsection{Consensus protocols} Recent developments in asynchronous consensus protocols have significantly increased throughput by decoupling data dissemination from metadata ordering\arp{cite and talk a bit about Dumbo, Bullshark, Aptos, Sui.}. These solutions offer vertical scaling and are orthogonal to the horizontal scaling proposed by IPC, in that each subnet can benefit from these advances at their consensus level. Also, these proposals in isolation are inherently restricted by the need to replicate all state updates across all members of the consensus protocol.
+    
+    \subsection{ZK and optimistic rollups.} Rollups scale blockchains by having third parties (sequencers) locally order and execute batches of transactions and posting only the result of the batch in the blockchain. Optimistic rollups rely on the result of a sequencer allowing for a predefined dispute period. If disputed, the sequencer is not punished only if it proves within a limited amount of time, via executing the batch in the blockchain, that the result of its batch matches its submitted result. ZK rollups cryptographically generate a succint proof of the correctness of the result for fast verification. To the best of our knowledge, all ZK rollups proposed to date rely on centralized sequencers, a problem not trivial to solve as rollups suffer from the need to assign disjoint batches for concurrent execution across different sequencers. \arp{add citations.}
+    
+    \subsection{Sharding} Sharding solutions periodically partition blockchain state across different group of replicas. Unlike subnets, shards do not conceptually differ from each other, leading to a potential increase of cross-shards communication compared to subnets, where users and services partition the state on demand. \arp{add citations}
+    
+    \subsection{State and payment channels} State channels scale blockchains by having participants lock their state in the blockchain (on-chain) among them in order to update locally the state (off-chain) with which to release the funds back on-chain. Payment channels are the analogous solutions for channels where the state are coins in the UTXO model. Channels can form network graphs in which nodes can relay payments in exchange of a fee. Though many works, particularly in state channels, are addressing significant problems specific to channels, IPC subnets are a generalization of channels\arp{add citations and detail some of them, then update this sentence}. This is because channels require all parties to sign in order to update the channel's state off-chain, whereas subnets (like the ones we show in this document) allow for a variable quorum size. \arp{add citations.}
 
-\begin{itemize}
+    \subsection{Subnets networks}
+    There are a number of previous and concurrent works that are conceptually similar to IPC subnets. 
+    
+    \paragraph{Single-layer networks.} Polygon scales the Ethereum blockchain by using a network of subnets (sidechains in the Polygon terminology) connected to the Ethereum mainnet, with a developing framework for services to create their own subnet. Avalanche offers a similar solution for its rootnet with Avalanche subnets, a network of subnets that are connected to their rootnet for further scaling and customized applications. Yet, Polygon PoS offers one subnet, and neither Polygon nor Avalanche offer native cross-net communication protocols. Polkadot's relay-chain connects Polkadots parachains with native cross-net transactions, in a topology that also resembles a single scaling layer of direct child subnets of a rootnet. They also offer especialized bridges to other blockchains, like that of Bitcoin or Ethereum.  Similarly to IPC, Polkadot's parachains rely on anchoring their compressed state to the parent for total ordering and cross-net interactions, which limits the capabilities of horizontal scaling: parachains need to constantly lease an auctioned slot on the relay-chain for a specific period, a problem that is exarcebated in a single layer of child subnets checkpointing to the same parent compared to IPC's tree topology. Internet Computer Protocol's (ICP) subnets are independent blockchains with the ICP rootnet as the common parent, and whose committees are subcommittees of the rootnet's validator set. ICP subnets are tightly integrated with its rootnet and dedicated to execute smart contracts seamlessly. Unfortunately, none of these works consider a structure beyond a single layer of direct child with their respective rootnet as the only parent. 
 
-    \item ZK and optimistic rollups
-    
-    \item sharding
-    
-    \item state channels
-    
-    \item payment channels
-    
-    \item plasma channels
-    
-    \item PoS sidechains
-    
-    \item Avalanche/ICP subnets
-    
-    \item Polygon supernets
+    \paragraph{Topology-agnostic networks.} Cosmos zones are independent blockchains that interact in a general graph not necessarily in the topology of a tree, with a reference implementation that spawns new zones running Tendermint as the consensus protocol. Cosmos relies on the single finality of Tendermint for inter-blockchain communication (IBC), with the Cosmos hub as an intermediary to facilitate IBC interactions, similarly to the Polkadot relay-chain. The flexibility for any topology between subnets comes with the need to have further requirements for IBC, like having nodes of a blockchain to run light client of each other blockchain they want to interact with, or to require fast finality. \arp{TODO PoS sidechains mention}
 
-    \item 
-
-    \item 
-
-    \item 
+    \paragraph{UTXO-based subnets.} Plasma chains horizontally scale payments via multiple subnets (childchains) organized in a tree-like structure. It is, along with PoS sidechains, one of the first works to consider subnet-like interactions between blockchains. Given the topology, many of the challenges that IPC subnets face are present in Plasma chains. However, Plasma chains are UTXO-based blockchains focused on payments. In this sense, IPC subnets generalize the problem that Plasma chains are trying to solve, allowing state to be transacted in subnets, and not just payments. Also, Plasma chains rely on synchrony for withdrawals with a dispute resolution period, similarly to state and payment channels, and optimistic rollups, which pose an unreconcilable trade-off between finality latency and security\arp{Cite platypus}, a problem that is theoretically solve by the partially synchronous Platypus, that approaches the \pof shown for IPC subnets running Trantor. IPC subnets also generalize Plasma's and Platypus' withdrawal mechanisms by allowing subnets to define what constitutes a proof of finality, a slashing rule and a fraud proof. 
     
-\end{itemize}
+% \noindent\textbf{Plasma chains:}
+% \begin{itemize}
+%     \item A similar tree topology of subnets where a child subnet is rooted at the parent.
+%     \item Additional security by committing to the parent cryptographic proofs for the validity of state transitions of the child.
+%     \begin{itemize}
+%         \item For a payment subnet in the UTXO model, this can be done with Merkleized proofs. It is relatively efficient, and we should consider (in the future) developing an off-the-shelf subnet that does it.
+%         \item For general purpose subnets a more complex proving system is required (e.g., ZK proofs).
+%     \end{itemize}
+%     \item The added complexity of the additional security (that roughly equals to the parent security) manifests itself at withdrawals. Withdrawing (moving funds from the child to the parent) requires substantial time delay to allow challenges to the validity of the withdrawal. The need to challenge malicious withdrawals also implies additional effort from the participants which need to be vigilant to ensure the system’s safety.
+%     \item Plasma relies upon users detecting Byzantine block withholding behavior, the users are responsible for exiting the Plasma blockchain quickly in case they detect such a behavior. 
+%     \item Plasma does not conflict with our design. We could (and probably should in the future) add a reference implementation for deploy a plasma subnet.
+% \end{itemize}
+% \paragraph{Avalanche subnets.}
+% \begin{itemize}
+%     \item Single layer (not recursive) – all part of the primary network.
+%     \item Flexible consensus (like ours).
+% 	\item Also flexible execution engine possible.
+% 	\item Do not use the parent for increased security (staking in the subnet and coins are minted internally with no need to deposit at the parent.)
+% 	\item Inter subnet communication via (3rd party) bridges.
+% \end{itemize}
+
+% \paragraph{Polkadot subnets:}
+% \begin{itemize}
+% 	\item A sharded blockchain in the classic sense. Basically, it’s a single blockchain containing the “headers” of each block of each parachain. (Parachain==subnet.)
+% 	\item Everything goes through the main chain (“relay chain”). It uses erasure codes and Merkle roots for efficiency.
+% 	\item It is a single layer
+% 	\item All security relies on the main chain with random assignment of validators to parachains.
+% 	\item Built-in inter subnet communication via the relay chain (after all, it is the source of truth for all and each block).
+% \end{itemize}
+
+% \paragraph{Cosmos subnets:}
+% \begin{itemize}
+% 	\item Most similar to us
+% 	\item The purpose of Tendermint is roughly like the purpose of Trantor in our eco-system. That is, a plugin parametrized consensus engine.
+% 	\item The cosmos subnets topology is more flexible than our tree structure. (A general graph.)
+%     \item The graph edges in Cosmos are based on bridges between any two subnets (hence no hierarchy and more trust requirements). These bridges can be an additional (future) application on top of our system, so there is no conflict.
+% 	\item They also have in their eco-system a special “subnet” called the hub. The hub is an implementation of a subnet that specializes in facilitating inter-blockchain communication among multiple other subnets (in a similar fashion to the Polkadot relay chain).
+% 	\item I could not find clear incentives arguments for the cross subnet communication through a hub (multi-hop).
+% \end{itemize}
+
+
+% \noindent\textbf{Polygon PoS (Matic):}
+% \begin{itemize}
+%     \item Ethereum compatible, with general EVM transactions (not only asset transfer).
+%     \item It claims to be a Plasma side chain.
+%     \item I did not understand how this is done while maintaining the Plasma guarantees (i.e., verification of every child transaction at the parent) since they did not add ZK mechanisms inside.
+% \end{itemize}
+
+
+
+% \noindent\textbf{ICP subnets:}
+% \begin{itemize}
+    % \item single layer, no parent -> no checkpointing to parent (less security).
+% \end{itemize}
