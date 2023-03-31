@@ -3,32 +3,41 @@
 % ======================================================================
 
 % Show diff (exactly one of this and the following pair of commands must be commented)
-\newcommand{\add}[1]{\textcolor{blue}{#1}}
-\newcommand{\del}[1]{\textcolor{gray}{#1}}
+% \newcommand{\add}[1]{\textcolor{blue}{#1}}
+% \newcommand{\del}[1]{\textcolor{gray}{#1}}
 
 % Preview changes (exactly one of this and the previous pair of commands must be commented)
-% \newcommand{\add}[1]{#1}
-% \newcommand{\del}[1]{}
+\newcommand{\add}[1]{#1}
+\newcommand{\del}[1]{}
 
 \newcommand{\replace}[2]{\del{#1}\add{#2}}
 
 % Rendered comments
-\newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
-\textcolor{purple}{#1}]}}
-\newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
-\textcolor{teal}{#1}]}}
-\newcommand{\marko}[1]{[\textcolor{blue}{\textbf{mv:}} {\footnotesize
-\textcolor{purple}{#1}]}}
-\newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
-\textcolor{brown}{#1}]}}
-\newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
-\textcolor{violet}{#1}]}}
-\newcommand{\akosh}[1]{[\textcolor{blue}{\textbf{af:}} {\footnotesize
-\textcolor{blue}{#1}]}}
-\newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
-\textcolor{red}{#1}]}}
-\newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
-\textcolor{gray}{#1}]}}
+% \newcommand{\guy}[1]{[\textcolor{blue}{\textbf{gg:}} {\footnotesize
+% \textcolor{purple}{#1}]}}
+% \newcommand{\matej}[1]{[\textcolor{blue}{\textbf{mp:}} {\footnotesize
+% \textcolor{teal}{#1}]}}
+% \newcommand{\marko}[1]{[\textcolor{blue}{\textbf{mv:}} {\footnotesize
+% \textcolor{purple}{#1}]}}
+% \newcommand{\arp}[1]{[\textcolor{blue}{\textbf{arp:}} {\footnotesize
+% \textcolor{brown}{#1}]}}
+% \newcommand{\jorge}[1]{[\textcolor{blue}{\textbf{js:}} {\footnotesize
+% \textcolor{violet}{#1}]}}
+% \newcommand{\akosh}[1]{[\textcolor{blue}{\textbf{af:}} {\footnotesize
+% \textcolor{blue}{#1}]}}
+% \newcommand{\cmt}[1]{[\textcolor{blue}{\textbf{CMT:}} {\footnotesize
+% \textcolor{red}{#1}]}}
+% \newcommand{\TODO}[1]{[{\textbf{\red{TODO:}}} {\footnotesize
+% \textcolor{gray}{#1}]}}
+
+\newcommand{\guy}[1]{}
+\newcommand{\matej}[1]{}
+\newcommand{\marko}[1]{}
+\newcommand{\arp}[1]{}
+\newcommand{\jorge}[1]{}
+\newcommand{\akosh}[1]{}
+\newcommand{\cmt}[1]{}
+\newcommand{\TODO}[1]{}
 
 \newcommand{\ignore}[1]{}
 
@@ -77,10 +86,7 @@
 % Legacy macros
 % ======================================================================
 
-%\newtheorem{observation}{Observation}
 \newtheorem{claim}{Claim}
-%\newtheorem{lemma}{Lemma}
-%\newtheorem{corollary}[lemma]{Corollary}
 \newtheorem{notation}{Notation}
 \newtheorem{invariant}{Invariant}
 \newtheorem{execution}{Execution}
@@ -88,14 +94,8 @@
 \newtheorem*{ensemble*}{Ensemble}
 \newtheorem{strategy}{Strategy}
 \newtheorem*{strategy*}{Strategy}
-%\newtheorem{definition}{Definition}
 \newtheorem{assumption}{Assumption}
-%\newtheorem{theorem}{Theorem}
 \newtheorem*{theorem*}{Theorem}
-%\newtheorem{proposition}{Proposition}
-% \newreptheorem{claim}{Claim}
-% \newreptheorem{definition}{Definition}
-% \newreptheorem{lemma}{Lemma}
 
 \newcommand{\alg}{$\mathcal A$}
 \newcommand{\act}{\alpha}
