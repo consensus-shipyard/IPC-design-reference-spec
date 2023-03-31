@@ -1,17 +1,15 @@
 \documentclass[11pt,a4paper]{article}
-\input{preamble}
+\input{mypackages}
+\input{mystyle}
+\input{sections/glossary}
 \graphicspath{{figs/}}
 \newcounter{myCounter}
 
-\usepackage{fullpage}
-
 \begin{document}
 
-
-
-\title{\ipcFull (\ipc)}
+\title{\ipcFull (\ipc)\thanks{\url{https://ipc.space}}}
 \date{}
-\author{Consensus Lab}
+\author{ConsensusLab\thanks{\url{https://consensuslab.world}}}
 % \authornote{Both authors contributed equally to this research.}
 % \orcid{1234-5678-9012}
 % \author{G.K.M. Tobin}
@@ -25,6 +23,29 @@
 
 \maketitle
 \begin{abstract}
+Totally ordering transactions constitutes a
+significant scalability bottleneck standing in the way of massive adoption of
+blockchain systems, as all participants need to replicate and execute sequentially every single transaction. Layer 2 (L2) protocols aim at resolving this scalability
+limitation by off-loading state and processing to a loosely coupled sub-system.
+
+We present \ipcFull (\ipc), a new blockchain
+architecture design that enhances the scaling capabilities of L2+
+protocols. Users of \ipc can dynamically spawn new blockchain subsystems
+(subnets) as children of any existing subnet.  \ipc is based on the design principles of
+on-demand horizontal scaling. Child subnets leverage the
+security of their parent subnets by periodically checkpointing their state in the parent's state.
+\ipc provides native communication across
+subnets within the \ipc framework.
+
+We believe that \ipc addresses several issues with existing L2 approaches,
+including limited throughput capacity, isolation from each
+other, centralized components, or monolithic architectures.
+% We believe, however, that \ipc's flexible architecture could be implemented in
+% conjunction with many of these orthogonal solutions.
+In the following, we introduce the overall system architecture, native functionality,
+and design decisions of our reference implementation for child
+subnets based on the BFT Trantor consensus protocol, with Filecoin as
+rootnet.
 \end{abstract}
 
 % ----------------------------------------------------------------
@@ -35,34 +56,9 @@
 \input{sections/preliminaries}
 \input{sections/functionality}
 \input{sections/components}
-\input{sections/incentives}
 \input{sections/related-work}
 \input{sections/ref-impl}
-\input{sections/finalityVerification}
-
- % - Components and their Interfaces
- %   - Parent subnet node
- %   - Child subnet node
- %   - IPC module
- %   - Subnet actor
- % - IPC Functionality
- %  - Minimum required per subnet
- %    - Withdrawal/Deposits Interfaces
- %    - Other Operations? (Propagate?)
- %  - Enhancements
- %    - Checkpointing interfaces
- %    - Propagate
- %    - Reporting/Slashing interfaces
- %    - Atomic execution/swap, IBC-like bridges
- %  - Future stuff (google docs?)
- %    - Withdrawal at ancestor (skip parent(s)) (with timeout) etc.
- % - Implementations/templates
- %  - Different types and trade-offs of checkpoint triggers 
- %    - Periodically: time, #blocks, #withdrawn, etc.
- %    - At request: (this one is not governance funded)
- %    - Combinations of these 
- %    - Slashing functions
- %    - Atomic execution types?
+\input{sections/conclusion}
  
 % ----------------------------------------------------------------
 % ----------------------------------------------------------------
@@ -79,7 +75,7 @@
 % ----------------------------------------------------------------
 % ----------------------------------------------------------------
 \newpage
-\input{sections/appendix}
+%\printglossaries
 % \input{sections/appendix.tex}
 % \input{sections/algorithm.tex}
 % \input{sections/QvW.tex}

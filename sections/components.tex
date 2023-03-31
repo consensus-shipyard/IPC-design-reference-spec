@@ -1,9 +1,7 @@
- \section{\ipc Actor Implementation}
+ \section{\ipc Actors}
  \label{sec:components}
 
-\matej{This section has been moved around and needs updating. Read with care or don't read yet. Update coming soon.}
-
-This section describes, at a high level, the implementation of \ipc's main components: the \gw, \sa, and the \ipc agent.
+This section describes the state and functions of the two \ipc actors: the \gw and the \sa.
 
 \subsection{\gwFull (\gw)}
 \label{sec:gw}
@@ -15,13 +13,13 @@ The \gw holds:
     \item The names of its own, its parent's and its children's subnets
 
     \item The predicate used to evaluate the validity of \pofsFull.
-    This predicate will be applied to {\pof}s from the parent subnet.
+    This predicate will be applied to {\pof}s from both the parent subnet and the child subnets.
     It is specific to the subnets (and the protocols they use) involved in interactions with this subnet.
 
     \item The \postoffice storing all the outgoing cross-net transactions, along with their routing metadata (original source and ultimate destination subnets).
     We model the \postoffice as an infinitely growing set, from which the appropriate \ipc agents select only those elements that need to be submitted to other subnets.
     A garbage-collection mechanism for deleting delivered outgoing cross-net transactions from the sender subnet's state is out of the scope of this document.
-    One can imagine, however, a garbage-collection mechanism based on acknowledgments (that are themselves cross-net messages).
+    One can imagine, however, a garbage-collection mechanism based on acknowledgments (that are themselves cross-net transactions).
 
     \item In a PoS-based subnet whose membership is managed by its parent, the \gw also contains the target membership that the subnet must reconfigure to (if the subnet is not using it yet).
     This membership is the subnet's local copy of the membership stored in its corresponding \saFull in the parent.
@@ -45,8 +43,7 @@ The \gw holds:
     \var{targetMembership}: the membership this subnet should reconfigure to if it is not yet using it (PoS only)\;
     \;
   
-    \UponKW{\funcName{CreateChild}(\funcParam{name, params})}{
-        newSubnetActor(\funcParam{params})\;
+    \UponKW{\funcName{CreateChild}(\funcParam{name})}{
         \var{childSubnets} = \var{childSubnets} $\cup$ \{\funcParam{name}\}
     % Creates a new \sa with the given name and subnet-specific parameters (such as initial membership, etc.).
     % The subnet governed by the created \sa will be considered the child of the subnet of this \gw.
@@ -106,8 +103,7 @@ The \gw holds:
 
 The \saFull (\sa) is the actor in the parent subnet's replicated state that governs a single child subnet.
 It stores all information about the child subnet that the parent needs and logic that manipulates it.
-The \sa is created by the \gw by invoking the parent's \gw.\funcName{CreateChild}(\funcParam{subnetName, params}) function (see \Cref{sec:create}).
-The \funcParam{params} value plays a crucial part in the creation of the \sa, as it defines several parts of of the \sa's state.
+The \sa is registered in the IPC hierarchy by invoking the parent's \gw.\funcName{CreateChild}(\funcParam{subnetName}) function (see \Cref{sec:create}).
 The functionality of the \sa described in \Cref{sec:functionality} is summarized in \Cref{alg:sa}.
 The \sa holds:
 \begin{itemize}
@@ -127,12 +123,11 @@ The \sa holds:
     In particular, the presented description neglects some corner cases arising from concurrent handling of multiple staking, releasing, and/or slashing procedures.
     In a real-world implementation, however, these corner cases can easily be addressed.
 
-    The \sa stores information on which child replica is has how much collateral (\var{childMembership}),
+    The \sa stores information on which child replica has how much collateral (\var{childMembership}),
     how much collateral (and for which replica) is staked from which account (\var{collateral}),
     and which accounts requested the withdrawal of how much collateral (\var{collateralRequests}).
     Moreover, the \sa's state contains a predicate for checking the validity of proofs of misbehavior (\var{validPom})
     and a procedure to execute when a valid PoM is received through the \funcName{Slash} function.
-    Both \var{validPoM} and \var{slashingPolicy} are part of \funcParam{params} passed to \gw.\funcName{CreateChild} when the \sa is created.
     
 \end{itemize}
 
@@ -191,86 +186,3 @@ The \sa holds:
         }
     }
 \end{algorithm}
-
-    % OLD VERSION
-    % The state of the \sa includes:
-    % \begin{itemize}
-
-    %     \item \emph{Accounting data.}
-    %     This data describes the value that has been deposited to the child.
-    %     It is considered locked inside the SA until it is withdrawn from the child.
-    %     This data might consist of just a single value representing the sum of all such coins (``aggregated accounts'' approach), \jorge{maybe just use omnibus account as in traditional banking?}
-    %     but might also contain finer-grained information about balances for each account in the child subnet (``segregated accounts'' approach).
-    %     %We continue with the non-custodial approach as the other can be viewed as a specific limitation of it.
-
-    %     \item \emph{Subnet consensus data.}
-    %     This is the data (or a pointer thereto) that is needed to run the ordering protocol of the child subnet.
-    %     It is specific to the ordering protocol but generally expected to contain information such as the ordering protocol used by the subnet, subnet configuration data such as the validator set, voting rights, and collateral deposits, and subnet governance mechanisms such as transaction fees, block rewards, and conditions for participation.         \TODO{Mention our reference implementation as a concrete example here, saying what information it stores.}
-
-    %     \item \emph{Child state finality verification.} Logic to verify that a given child's replicated state is final,
-    %     or that a particular \tx has been definitively included in the child's state.
-    %     We expect that this logic will verify a \pof submitted (through transactions) by one or more IPC agents to the \sa.
-    %     % For this, we will use the function \sa.\verifyGfinal{\tx}{\prf} which excepts as arguments a transaction (or state) and a \prf, and outputs True if \tx is considered globally final in the child subnet and False otherwise. This function must only depend on its inputs and the internal state of~\sa. For example, \prf is a threshold signature that can be verified against the set of validators in~\sa.
-          
-    %     \item \emph{Slashing data.} List of slashable misbehaviors and corresponding definition of what constitutes a valid proof of misbehavior (\pom), as well as penalties for misbehavior and rewards for reporting \pom and logic performing the actions necessary for slashing in the parent subnet.
-    %     \item \emph{Checkpointing.} Child subnet's checkpoint data, or a pointer thereto, and checkpoint validity rules (and logic enforcing them).
-    % \end{itemize}
-
-% \subsection{IPC Agent}
-
-% We assume that an IPC Agent is only responsible for a single pair of parent-child subnets, the state of which it can access.
-% It reacts to changes in those states triggered by the corresponding invocations of \actors, as listed below.
-
-% \begin{algorithm}[H]
-% \footnotesize
-% \caption{IPC Agent interface}\label{alg:agent-interface}
-%   \DontPrintSemicolon
-%   \SetKwProg{Component}{$\blacktriangleright$ \bf}{:}{\KwRet}
-%   \SetKwFor{UponKW}{upon}{do}{fintq}
-%   \SetKw{Trigger}{trigger}
-%   \Component{IPC Agent}{
-%     \UponKW{parent.SA.Join(identity, src, collateral)}{
-%         Constructs a \pof proving that the invocation of \emph{parent.SA.join(identity, src, collateral)} has been finalized in the parent's replicated state,
-%         as well as subnet-specific metadata based on the \emph{identity} of the joining replica and the associated \emph{collateral}
-%         and notifies the child subnet by submitting a transaction that invokes \emph{child.\gw.Joined(identity, metadata, \pof)}.
-%     }
-%      \UponKW{child.\gw.Leave(identity)}{
-%         Constructs a \pof proving that the invocation of \emph{child.\gw.Leave(identity)} has been finalized in the child's replicated state
-%         and notifies the parent subnet by submitting a transaction that invokes \emph{parent.SA.Left(identity, \pof)}
-%      }
-%     \UponKW{parent.SA.Deposit(..., amt, dest)}{
-%         Constructs a \pof proving that the invocation of \emph{parent.SA.Deposit(src, amt, dest)} has been finalized in the parent's replicated state
-%         and notifies the child subnet by submitting a transaction that invokes \emph{child.\gw.Deposited(amt, dest, \pof)}
-%     }
-%     \UponKW{child.\gw.Withdraw(..., amt, dest)}{
-%         Constructs a \pof proving that the invocation of \emph{child.\gw.Withdraw(..., amt, dest)} has been finalized in the child's replicated state
-%         and notifies the parent subnet by submitting a transaction that invokes \emph{parent.SA.Withdrawn(amt, dest, \pof)}
-%     }
-%     \UponKW{child.\gw.cross-netTX(tx, destName)}{
-%         If \emph{destName} points up the hierarchy, submits \emph{tx} to the parent subnet.
-%     }
-%     \UponKW{parent.\gw.cross-netTX(tx, destName)}{
-%         If \emph{destName} points down the hierarchy, submits \emph{tx} to the child subnet.
-%     }
-%     \add{
-%     \UponKW{checkpoint condition in child}{
-%         Create checkpoint, a \pof of the checkpoint at the child and submit from child to parent
-%     }
-%     \UponKW{misbehavior from set $\mathcal{M}$ found}{
-%         Create a proof of misbehavior \pom and submit to parent
-%     }
-%     \UponKW{parent.\sa.Slash($\mathcal{M}, \pom$)}{
-%         Constructs a \pof proving that the invocation of \emph{parent.\sa.Slash($\mathcal{M}, \pom$)} has been finalized in the parent's replicated state
-%         and notifies the child subnet by submitting a transaction that invokes \emph{child.\gw.Slashed($\mathcal{M}, \pom, \pof$)}
-%     }
-%     }
-% }
-% \end{algorithm}
-
-% OLD VERSION
-% Note the function pairs \emph{Joined/Leave} of the \gw actor (\Cref{alg:gw-interface}) and \emph{Join/Left} of the \sa (\Cref{alg:sa-interface}).
-% This is because the intended invocation pattern for several functionalities is as follows (to be detailed in \Cref{sec:functionality}).
-% \begin{enumerate}
-%     \item The initiating subnet invokes a function on a \actor (e.g., \emph{\sa.Join}).
-%     \item IPC agent notices the invocation, constructs the required \pof, and submits a transaction to the other subnet (e.g., \emph{\gw.Joined})
-% \end{enumerate}

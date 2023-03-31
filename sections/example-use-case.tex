@@ -1,15 +1,15 @@
-\section{Example Use Case: On-Line Game Platform}
+\section{Example Use Case: On-Line Gaming Platform}
 \label{sec:example-use-case}
 
-To better understand how \ipc works and how it is useful, let us expand on the example application of a distributed on-line gaming platform sketched in the introduction of this document.
-Imagine a platform where registered players meet and play games against each other, while the platform maintains player rankings.
+To better understand how \ipc works and how it is useful, let us imagine an example application of a distributed on-line gaming platform.
+Consider a platform where registered players meet and play games against each other, while the platform maintains player rankings.
 Tournaments can be organized as well, where each participant pays a participation fee and the winner(s) obtain prize money (both in form of coins).
 We now describe how \ipc could be used to build this hypothetical application in a fully distributed fashion.
 
 \paragraph{Rootnet with all users' funds (\subnetName{L1}).}
 The rootnet is used as a financial settlement layer.
 Most users' coins are on accounts residing in the rootnet's replicated state.
-A robust established blockchain system like Filecoin would be a good candidate for use as the rootnet.
+A robust established blockchain system like Filecoin could be a reasonable candidate for use as the rootnet.
 Its relatively higher latency and lower throughput (that is often the price for security and robustness) is not a practical issue,
 as users will rarely interact directly with it.
 
@@ -23,7 +23,7 @@ and deals, in general, with fewer funds than the rootnet (only as much as users 
 The replicas constituting this subnet are run by gaming clubs or even some (not necessarily all) individual players
 (who do not necessarily trust each other, e.g. to not manipulate the score boards).
 To have a replica in the \subnetName{L2} subnet, the club (or the player) needs to lock a certain amount of funds as collateral that can be slashed by the system if the replica misbehaves.
-The collateral / slashing mechanism is described in more detail in \Cref{sec:incentives-collateral-slashing,sec:slash}.
+% The collateral / slashing mechanism is described in more detail in \Cref{sec:incentives-collateral-slashing,sec:slash}.
 
 \paragraph{Individual games (\subnetName{L3}).}
 For each individual game, a new child of the \subnetName{L2} subnet is created (\Cref{sec:create}) and acts as a (distributed) game server.
@@ -49,7 +49,7 @@ To stretch the example even further, one could imagine a tournament being implem
 
 \paragraph{}
 This simple use case utilizes most of \ipc's features.
-Throughout the rest of the document, we will use the on-line chess platform as a running example when describing \ipc's functionality in more detail.
-\matej{This ``running example'' part is still to be added to the rest of the document. Coming soon, but I'd prefer to have some feedback on the general suitability of this example. Then I start integrating it in the text throughout the document.}
-\arp{Following discussion on integrating cross-net txs in this example, how about having a common ranking of a user across different games (e.g.: heckers, 3d chess, Xiangqi, etc.) that are in different subnets (rootnet children) and cross-net txs inform each other of match results to locally update user's ranking (and to authenticate in the first place)}
-\matej{In fact, I meant basically that above, in the paragraph about individual games (last sentence is already pointing to the section on cross-net txs.)}\akosh{I would find it interesting to discuss mechanisms to ensure trust in the results coming from the subnets, so no player can artificially boost their standing.}\jorge{the weakness of the example is really how far from typical blockchain use cases it is; but I think it's a good proxy for explaining things, and I like where this is going.}
+Throughout the rest of the document, we will use the on-line gaming platform as a running example when describing \ipc's functionality in more detail.
+%\matej{This ``running example'' part is still to be added to the rest of the document. Coming soon, but I'd prefer to have some feedback on the general suitability of this example. Then I start integrating it in the text throughout the document.}
+% \arp{Following discussion on integrating cross-net txs in this example, how about having a common ranking of a user across different games (e.g.: heckers, 3d chess, Xiangqi, etc.) that are in different subnets (rootnet children) and cross-net txs inform each other of match results to locally update user's ranking (and to authenticate in the first place)}
+% \matej{In fact, I meant basically that above, in the paragraph about individual games (last sentence is already pointing to the section on cross-net txs.)}\akosh{I would find it interesting to discuss mechanisms to ensure trust in the results coming from the subnets, so no player can artificially boost their standing.}\jorge{the weakness of the example is really how far from typical blockchain use cases it is; but I think it's a good proxy for explaining things, and I like where this is going.}
