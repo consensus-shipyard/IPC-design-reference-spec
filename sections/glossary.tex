@@ -1,66 +1,266 @@
 \makeglossaries
 
-\newglossaryentry{replica}{
-    name={Replica},
-    description={Description of a replica.}
+\newglossaryentry{account}{
+    name={Account},
+    text={account},
+    description={
+        Object in the Replicated State of a Subnet that associates a public key with an amount of Coins - the account’s Balance. Coins can only be removed from the Account by applying transactions signed with the corresponding private key.
+        When referring to an Account “in a Subnet”, we mean an Account in that subnet’s Replicated State.
+    }
+}
+
+\newglossaryentry{actor}{
+    name={Actor},
+    text={actor},
+    description={Object in the replicated state of a Subnet. It contains data and code (methods) to manipulate this data. The smart contract’s methods can be invoked by applying transactions to the replicated state. An invocation of a method may update the smart contract’s data and invoke methods of other smart contracts.
+    Similarly to an account, a smart contract may be associated with an amount of money that its methods can transfer to other accounts or smart contracts.
+    }
+}
+
+\newglossaryentry{balance}{
+    name={Balance (of an Account)},
+    text={balance},
+    description={
+        The amount of Coins associated with the Account.
+    }
+}
+
+\newglossaryentry{block}{
+    name={Block},
+    text={block},
+    description={
+        A data structure containing an ordered list of Transactions and, potentially, other metadata.
+    }
+}
+
+\newglossaryentry{block height}{
+    name={Block height},
+    text={block height},
+    description={
+        The position of the Block in the sequence of Blocks applied to the Replicated State of a Subnet.
+        When talking about the Block height “of Replicated State”, we refer to the Replicated State after the Block with a particular Height has been applied to it.
+    }
+}
+
+\newglossaryentry{coin}{
+    name={Coin},
+    text={coin},
+    description={
+        A unit of value that is socially accepted among some humans  (e.g., FIL, BTC).
+        Coins are fungible, i.e., interchangeable among each other.
+    }
+}
+
+\newglossaryentry{cross-net-tx}{
+    name={Cross-net transaction},
+    text={cross-net transaction},
+    description={
+        Transactions whose source is an actor of a subnet, and destination is an actor of another subnet.
+    }
 }
 
 \newglossaryentry{child}{
     name={Child subnet},
     plural={children},
-    description={Description of the child subnet.}
+    description={
+        A Subnet that has the role of a child with respect to another Subnet (its Parent). All Replicas in the Child fully trust whatever is written in the Replicated State of the Parent.
+    }
+}
+
+\newglossaryentry{collateral}{
+    name={Collateral},
+    text={collateral},
+    description={
+        An amount of Coins blocked by a Subnet to disincentivize a Replica from deviation from the protocol. A Collateral might be required for a Replica to participate in a Subnet. When the Replica stops participating in the subnet, the Collateral is released. In case of the Replica’s provable violation of the corresponding protocol, the collateral might never be released.
+    }
+}
+
+\newglossaryentry{deposit}{
+    name={Deposit},
+    text={deposit},
+    description={
+        Transfer of Coins from an Account in a Parent Subnet to an Account in one of its Child Subnets.
+    }
+}
+
+\newglossaryentry{finality}{
+    name={Finality},
+    text={finality},
+    description={
+        Property of Replicated State that is assumed to never be rolled back. Replicated State that is final can be trusted to the same extent as the Subnet replicating it can be trusted.
+        A Transaction is Final if the Replicated State resulting from its application is Final.
+    }
+}
+
+\newglossaryentry{full-node}{
+    name={Full node (of a Subnet)},
+    text={full node},
+    description={
+        A process that stores a local copy of the replicated state of a Subnet, as well as all the Transactions that lead to it. 
+        A Full node contains all information needed to copy the entire state of a subnet to a new Full node belonging to a different Trust Domain. 
+    }
+}
+
+\newglossaryentry{agent}{
+    name={IPC agent},
+    text={IPC agent},
+    description={
+        A process that is, at the same time, an Subnet client of a child subnet and its parent subnet. It also has read access to the replicated state of both the parent and the child. 
+        It is the process that is required to be run by Participants in charge of ensuring the liveness and safety of IPC.
+        An IPC agent is also run by the Users of IPC to orchestrate Transactions involving both a Parent and a Child Subnet (Deposits and Withdrawals).
+    }
+}
+
+\newglossaryentry{gw}{
+    name={IPC Gateway Actor (IGW)},
+    text={IGW},
+    description={
+        An Actor that exists in every Subnet in the IPC hierarchy and contains all information and logic the Subnet needs to replicate in order to be part of IPC. This includes, for example, consensus protocol configuration data and logic for verifying the Parent Subnet’s PoFs.
+    }
+}
+
+\newglossaryentry{sa}{
+    name={IPC Subnet Actor (ISA)},
+    text={ISA},
+    description={
+        An actor that facilitates the interaction between a parent subnet and its child subnet. The Subnet actor is part of the parent subnet’s replicated state and contains all subnet-specific information about the child.
+    }
+}
+
+\newglossaryentry{membership}{
+    name={Membership (of a Subnet)},
+    text={membership},
+    description={
+        The set of Replicas a Subnet consists of, including (potentially system-specific) metadata about the replicas (e.g., the replica’s network addresses, public keys, voting weights, …)
+    }
+}
+
+\newglossaryentry{parent}{
+    name={Parent Subnet},
+    text={parent},
+    description={
+        A subnet that has the role of a parent with respect to other subnets (its children). All replicas of the children fully trust whatever is written in the replicated state of the parent.
+    }
+}
+
+\newglossaryentry{participant}{
+    name={Participant},
+    description={
+        A trust domain containing a subnet replica and an IPC orchestrator (and potentially other processes).
+    }
+}
+
+\newglossaryentry{process}{
+    name={Process},
+    text={process},
+    description={
+        An entity capable of computation and communication. Usually, a process is a program running on a computer, having some state, and reacting to external events and messages received over a communication network.
+    }
+}
+
+\newglossaryentry{pof}{
+    name={Proof of finality (\pof)},
+    text={\pof},
+    description={
+        Information proving that a certain Replicated State is Final.
+    }
+}
+
+\newglossaryentry{proposal}{
+    name={Proposal },
+    text={proposal},
+    description={
+        A particular step of the ordering protocol that starts the process of ordering a concrete (block of) transaction(s) from the replica’s mempool. The action of proposing is only defined for a replica.
+    }
+}
+
+\newglossaryentry{replica}{
+    name={Replica},
+    text={replica},
+    description={
+        A process that participates in a Subnet and maintains a (local or remote) copy of the Subnet’s replicated state, executes the ordering protocol, and executes the resulting sequence of transactions to keep its copy of the replicated state up to date.
+        A replica maintains a local mempool, from which the replica proposes (blocks of) transactions during the execution of the ordering protocol.
+    }
+}
+
+\newglossaryentry{state}{
+    name={Replicated state},
+    text={state},
+    description={
+        Part of a replica’s local state that is guaranteed to evolve consistently across all the replicas’ local states. I.e., it is the data that each correct replica has a copy of and that each replica updates by deterministically applying a sequence of (blocks of) transactions. The replicated state is uniquely defined by the initial state (pre-defined / “hard-coded” in each replica) and a sequence of (blocks of) transactions applied to it.
+        Note that replicas do not necessarily hold the same replicated state at any instant of real time, since each replica might be processing transactions at a different time. In this context, there is no such thing as “the current replicated state of the Subnet”. There is only the current replicated state of a replica. The replicated state of the system is only an abstract, logical construct useful for reasoning about transitions from one replicated state to another, happening (at different real times) at individual replicas. When referring to the replicated state of a Subnet as a whole, we mean the replicated state resulting from the application of a certain number of transactions to the initial state at any correct replica.
+    }
+}
+
+\newglossaryentry{rootnet}{
+    name={Rootnet},
+    text={rootnet},
+    description={
+        The subnet at the top of the IPC hierarchy. The only subnet that has no parent.
+    }
+}
+
+\newglossaryentry{submit}{
+    name={Submit (a transaction to a subnet)},
+    text={submit},
+    description={
+        Perform the steps necessary for inserting the Transaction into the Mempools of one or more Replicas of the Subnet, such that the Transaction will eventually be applied to the Subnet’s replicated state. A Process that Submits a Transaction to a Subnet is called a Subnet client.
+    }
+}
+
+\newglossaryentry{subnet}{
+    name={Subnet},
+    description={
+        A State machine replication system, consisting of replicas, each of which replicates (i.e., locally stores a copy of, or at least has access to) a replicated state that it updates over time by applying an ordered sequence of (blocks of) transactions to it.
+        Each correct Replica is guaranteed that, after applying n (blocks of) transactions to its local copy of the replicated state, the replicated state will be identical to any other correct replica’s copy of the replicated state after applying n (blocks of) transactions.
+        Each subnet, except for one that we call the rootnet, is associated with exactly one Parent Subnet. It can have arbitrarily many Child Subnets associated with it.
+    }
+}
+
+\newglossaryentry{subnet client}{
+    name={Subnet client},
+    text={subnet client},
+    description={
+        A process that submits transactions to the Subnet.
+    }
 }
 
 \newglossaryentry{transaction}{
     name={Transaction},
-    description={t}
+    text={transaction},
+    description={
+        A deterministic update of a Subnet’s replicated state. Can be applied to the replicated state to obtain a new replicated state. The application of a transaction never has any side effects.
+    }
 }
 
-\newglossaryentry{subnet}{
-    name={Transaction},
-    description={t}
+\newglossaryentry{trust domain}{
+    name={Trust domain},
+    text={trust domain},
+    description={
+        Set of processes that trust each other, i.e., that assume each other’s correctness. They are also trusted as a group by other processes.
+    }
 }
 
-\newglossaryentry{rootnet}{
-    name={Transaction},
-    description={t}
+\newglossaryentry{user}{
+    name={User},
+    text={user},
+    description={
+        Usually (but not necessarily) human user of the system that is not interested in how the system operates and only wants to benefit from the system’s functionality.
+    }
 }
 
-\newglossaryentry{parent}{
-    name={Transaction},
-    description={t}
+\newglossaryentry{wallet}{
+    name={Wallet},
+    text={wallet},
+    description={
+        A Subnet client that holds the private key corresponding to an account’s public key.
+    }
 }
 
-\newglossaryentry{checkpoint}{
-    name={Transaction},
-    description={t}
+\newglossaryentry{withdrawal}{
+    name={Withdrawal},
+    text={withdrawal},
+    description={
+        Transfer of Coins from an account in a child subnet to an account in its parent subnet.
+    }
 }
-
-\newglossaryentry{membership}{
-    name={Transaction},
-    description={t}
-}
-
-\newglossaryentry{state}{
-    name={Transaction},
-    description={t}
-}
-
-\newglossaryentry{participant}{
-    name={Transaction},
-    description={t}
-}
-
-\newglossaryentry{full node}{
-    name={Transaction},
-    description={t}
-}
-
-\newglossaryentry{actor}{
-    name={Transaction},
-    description={t}
-}
-
-
-\newacronym{ipc}{IPC}{Interplanetary Consensus}
-

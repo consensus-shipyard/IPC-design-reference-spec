@@ -70,7 +70,7 @@ or slashing policies (penalize misbehaving replicas by the backing player loosin
 \subsection{Depositing funds}
 \label{sec:deposit}
 
-A deposit is a transfer of funds from an account in the parent subnet to an account in the child subnet.
+A \gls{deposit} is a transfer of funds from an account in the parent subnet to an account in the child subnet.
 The following functions are exposed by the \ipc actors to enable deposits.
 \begin{align*}
     \sa.&\funcName{Deposit}(\funcParam{amount, account})\\
@@ -122,7 +122,7 @@ and waits until the funds appear on \accountNameFull{P/C}{b}.
 \subsection{Withdrawals}
 \label{sec:withdraw}
 
-A withdrawal is a transfer of funds from an account in the child subnet to an account in the parent subnet.
+A \gls{withdrawal} is a transfer of funds from an account in the child subnet to an account in the parent subnet.
 The following functions are exposed by the \ipc actors to enable withdrawals.
 \begin{align*}
     \gw.&\funcName{Withdraw}(\funcParam{amount, account})\\
@@ -198,7 +198,7 @@ A checkpoint of subnet \subnetName{P/C} to its parent \subnetName{P} is created 
 \subsection{Propagating cross-net transactions}
 \label{sec:cross-net-tx}
 
-Cross-net transactions are a means of interaction between actors located on different subnets.
+\Glspl{cross-net-tx} are a means of interaction between actors located on different subnets.
 Unlike a "standard" transaction issued and submitted to a subnet by a user's wallet,
 a cross-net transaction is issued by actors of another subnet.
 
@@ -295,7 +295,7 @@ As the deposited funds are in the \sa, the subnet can still keep operating for a
 % and we can refine / generalize later when we have other critical things sorted out.
 % Especially since we do say that the staked collateral determines the voting power, I think it's completely fair to call it PoS.}\arp{Time shortage is a valid reason, but note that we do not require that collateral determines voting power (we do not even conceptually require a minimum amount of collateral at the parent for the child to run its consensus protocol, same way we do not require any specific slashing rule), which adds to the mnuch simpler requirement of single finality (or capped finalization with asumption of single finality, like in Filecoin as rootnet). Let us leave it like this for now and modify later if reused with more time} 
 
-In order to disincentivize replicas of a subnet from misbehaving, \ipc provides a mechanism for conditioning a replica's participation in the child subnet on \emph{collateral} in a proof-of-stake fashion.
+In order to disincentivize replicas of a subnet from misbehaving, \ipc provides a mechanism for conditioning a replica's participation in the child subnet on \emph{\gls{collateral}} in a proof-of-stake fashion.
 To this end, the \sa can associate each replica of the child subnet with a collateral.
 Replicas must transfer this collateral to the \sa, and the \sa only releases the collateral back once the corresponding replica stops participating in the subnet. The way in which the collateral associated with replicas impacts the functioning of the child is subnet-specific.
 
@@ -422,7 +422,7 @@ Slashing is a penalty imposed on provably malicious replicas in PoS-based subnet
 When a replica of a child subnet provably misbehaves, \ipc agents can report the misbehavior to its parent subnet,
 which can take an appropriate (configured) action (e.g., confiscate a part of the replica's collateral).
 The definition of what constitutes a provable misbehavior is subnet-specific.
-An example of such misbehavior is sending equivocating messages in the subnet's ordering protocol, such as two conflicting proposals for the same block height.
+An example of such misbehavior is sending equivocating messages in the subnet's ordering protocol, such as two conflicting \glspl{proposal} for the same block height.
 \ipc exposes the following function to enable slashing:
 
 \begin{align*}

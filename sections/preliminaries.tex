@@ -7,9 +7,9 @@ The reader is assumed to be familiar with the terminology defined there.
 \marko{If the glossary is stable, I suggest bringing it to the main body of the paper by defining concepts inline, as we go. Glossary can additionally stay in the appendix, for quick reference.}
 
 \paragraph{Basic abstractions.}
-A \emph{subnet} consists of multiple \emph{replicas}, yet we abstract a subnet as a single entity which maintains an  abstraction of \emph{replicated state} (of which each replica maintains a copy)
-that can only be modified through \emph{transactions} submitted either by \emph{users} or by an \emph{\ipc agent}.
-It is the state that all replicas agree on.
+A \emph{subnet} consists of multiple \emph{replicas}, yet we abstract a subnet as a single entity which maintains an  abstraction of \emph{replicated state} (of which each replica maintains a copy and that all replicas agree on)
+that can only be modified through \emph{transactions} \gls{submit}ted either by \emph{\glspl{user}} or by an \emph{\gls{agent}}.
+A sequence of transactions can be batched into a \emph{\gls{block}} to amortize the ordering overhead.
 % \akosh{What about cron, and similar end-of-epoch changes? Although I saw cron will be removed from Filecoin.}
 % \jorge{There are proposals to fix some cron issues (https://github.com/filecoin-project/FIPs/discussions/638),
 % but I don't think the current direction is towards removing it; in fact, I think there are very strong opinions against that solution.}
@@ -26,9 +26,9 @@ E.g., after a game hosted in a subnet finishes, the implementation of the game l
 As the state of every subnet evolves independently of the state of other subnets,
 \emph{IPC establishes a protocol for interaction between the states of different subnets}.
 
-At the basis of the protocol, IPC relies on  \emph{\pofsFull ({\pof}s)}.
+At the basis of the protocol, IPC relies on  \emph{\pofsFull (\glspl{pof})}.
 In a nutshell, a \pof is data that proves that a subnet irreversibly reached a certain replicated state.
-Regardless of the approach to \emph{finality} that the  \emph{ordering protocol} of a subnet uses (e.g., immediate finality for classic BFT protocols \cite{Algorand}, or probabilistic finality in PoW-based systems \cite{nakamoto2008bitcoin}),
+Regardless of the approach to \emph{\gls{finality}} that the  \emph{ordering protocol} of a subnet uses (e.g., immediate finality for classic BFT protocols \cite{Algorand}, or probabilistic finality in PoW-based systems \cite{nakamoto2008bitcoin}),
 a \pof serves to convince the verifier that the replicated state the \pof refers to will not be rolled back. This helps IPC establish the partial ordering between the states of two subnets. 
 
 
@@ -39,7 +39,7 @@ This committee can be, for example, a quorum of replicas of the very subnet that
 If the verifying subnet itself is a longest-chain one, a \pof can be as simple as a hash of the proving subnet's block,
 with every replica of the verifying subnet deciding locally about the \pof's validity (potentially leading to forks in the worst case).
 
-If a \pof is associated with subnet \subnetName{A}'s replicated state at \emph{block height} $h_\subnetName{A}$,
+If a \pof is associated with subnet \subnetName{A}'s replicated state at \emph{\gls{block height}} $h_\subnetName{A}$,
 and the \pof is included in subnet \subnetName{B}'s replicated state at block height $h_\subnetName{B}$,
 then subnet \subnetName{B}'s replicated logic will consider all \subnetName{A}'s state changes up to $h_\subnetName{A}$
 to have occurred at \subnetName{B}'s height $h_\subnetName{B}$.
@@ -63,21 +63,17 @@ We assign each subnet a name that is unique among all the children of the same p
 Similarly to the notation used in a file system, the name of a child subnet is always prefixed by the name of its parent.
 For example, subnets \subnetName{P/C} and \subnetName{P/D} would both be children of subnet \subnetName{P}.
 
-\paragraph{Notation.} We refer to an account \accountName{a} in the replicated state of subnet \subnetName{S} as \subnetName{S}.\accountName{a}.
-To denote a function of an actor in the replicated state of a subnet, we write \funcNameFull{Subnet}{Actor}{Function}.
-E.g., the \emph{IPC Gateway Actor} (\gw) function \funcName{CreateChild} in subnet \subnetName{P} is denoted \funcNameFull{P}{\gw}{CreateChild}.
-We also use this notation for a transaction \tx{tx} submitted to subnet \subnetName{P} that invokes the function, e.g., \tx{tx} = \funcNameFull{P}{\gw}{CreateChild}$(\subnetName{P/C}, params)$.
-
 \paragraph{Representing value.}
-For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{value} (measured in \emph{coins}) common to both subnets.%
+For each pair of subnets in a parent-child relationship, we assume that there exists a notion of \emph{value} (measured in \emph{\glspl{coin}}) common to both subnets.%
 \footnote{One can easily generalize the design to decouple the use of value between a parent and its child, but we stick with using the same kind of value in both subnets for simplicity.}
-We represent this value by associating some number of coins (also referred to as funds) with accounts and actors in a subnet's replicated state.
+We represent this value by associating some number of coins (also referred to as funds) with \glspl{account} and actors in a subnet's replicated state.
+The number of coins associated with an account is the account's \emph{\gls{balance}}.
 Each user is assumed to have an account in each subnet the user interacts with.
 All the transactions spending coins from an account must be signed by the corresponding user's private key.
 For ease of presentation, we do not explicitly include these signatures in the further description of \ipc.
 
 We also assume that the submission, ordering, and application of transactions is associated with a cost (known as transaction fees, or \emph{gas}).
-Each subnet client (user wallet or IPC agent) submitting a transaction to a subnet must have an account in that subnet, from which this cost is deducted.
+Each \gls{subnet client} (user \gls{wallet} or IPC agent) submitting a transaction to a subnet must have an account in that subnet, from which this cost is deducted.
 If the funds are insufficient, the subnet may fail to execute the transaction.
 
 Note that the operation of \ipc requires the submission and processing of transactions that are not easily attributed to a concrete user.
@@ -85,6 +81,10 @@ This is the case with transactions that an \ipc agent submits on behalf of a who
 % We discuss incentivization of participants to run \ipc agents and pay for the associated transaction fees in \Cref{sec:refunds-rewards}.
 \matej{Move this part after \ipc agent and actors, as it already uses those terms. On the other hand, it would be nice to have it before the trust model. Maybe we could move the trust model to be last...}
 
+\paragraph{Notation.} We refer to an account \accountName{a} in the replicated state of subnet \subnetName{S} as \subnetName{S}.\accountName{a}.
+To denote a function of an actor in the replicated state of a subnet, we write \funcNameFull{Subnet}{Actor}{Function}.
+E.g., the \emph{IPC Gateway Actor} (\gw) function \funcName{CreateChild} in subnet \subnetName{P} is denoted \funcNameFull{P}{\gw}{CreateChild}.
+We also use this notation for a transaction \tx{tx} submitted to subnet \subnetName{P} that invokes the function, e.g., \tx{tx} = \funcNameFull{P}{\gw}{CreateChild}$(\subnetName{P/C}, params)$.
 
 \paragraph{Trust model.}
 
@@ -138,7 +138,7 @@ In a nutshell, their functions are as follows.
 
 \paragraph{\ipc agent.}
 
-The \ipc agent is a process that mediates the communication between a parent and a child.
+The \ipc agent is a \gls{process} that mediates the communication between a parent and a child.
 It has access to the replicated states of both subnets and acts as a client of both subnets.
 When the replicated state of subnet \subnetName{A} indicates the need to communicate with subnet \subnetName{B},
 the \ipc agent constructs a \pof for \subnetName{A}'s replicated state and submits it as a transaction to \subnetName{B}.

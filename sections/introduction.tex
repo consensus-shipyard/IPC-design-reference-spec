@@ -28,18 +28,18 @@ Subnets are meant to be used in different ways. For instance, subnets can host d
 \paragraph{L2+ child subnets leverage security of their parent subnets.} \ipc is organized in a hierarchical fashion, where each subnet, except for one that we call the \emph{\gls{rootnet}}, is associated with exactly one other subnet called its \emph{\gls{parent}}.
 Conversely, one parent can have arbitrarily many subnets, called \emph{\glspl{child}}, associated with it.
 
-This yields a tree structure of subnets, in which child subnets periodically \gls{checkpoint} critical information, e.g., their \gls{state}, or \gls{membership} information, to their parent subnet. Checkpointed history of a child subnet cannot be reverted even if there is a trust assumption violation in a child subnet, as long as a parent subnet operates as expected. Checkpoints are propagated in a recursive way all the way to the rootnet (L1), which makes child subnets benefit from security of their ancestor subnets. 
+This yields a tree structure of subnets, in which child subnets periodically checkpoint critical information, e.g., their \gls{state}, or \gls{membership} information, to their parent subnet. Checkpointed history of a child subnet cannot be reverted even if there is a trust assumption violation in a child subnet, as long as a parent subnet operates as expected. Checkpoints are propagated in a recursive way all the way to the rootnet (L1), which makes child subnets benefit from security of their ancestor subnets. 
 
 This tree of subnets expresses a hierarchy of trust.
-All components of a subnet and all \glspl{participant} using it are assumed to fully trust their parent; in \ipc trust model, this is accomplished by having each participant in a subnet either runs a \gls{full node} in said subnet and all its ancestor subnets, or it trusts some other participant which runs a full node. 
+All components of a subnet and all \glspl{participant} using it are assumed to fully trust their parent; in the \ipc trust model, this is accomplished by having each participant in a subnet either run a full node in said subnet and all its ancestor subnets, or it trusts some other participant which runs a full node. 
 Note that, in general, trust in all components of the parent subnet is not required, but the parent system as a whole is always assumed to be correct (for some definition of correctness specific to the parent subnet) by its child.
 
 \paragraph{Lightweight communication across subnets and IPC hierarchy.}
 Conceptually, IPC has built-in interoperability across subnets leveraging the IPC tree hierarchy, without relying on custom bridges across subnets.
-This feature, which appears unique to IPC, allows \gls{participant} of the IPC framework to seamlessly communicate with other subnets belonging to the same IPC tree. 
+This feature, which appears unique to IPC, allows \glspl{participant} of the IPC framework to seamlessly communicate with other subnets belonging to the same IPC tree. 
 
 Communication across subnets in IPC is facilitated by two \emph{\glspl{actor}} (equivalent to smart-contracts in Ethereum terminology):
-the IPC Gateway Actor (IGA) and the IPC Subnet Actor (ISA), as well as a lightweight process we call the \emph{\ipc agent} which submits the transactions involved in inter-subnet interaction. Concretely, \ipc agents read the replicated state of one subnet and submit transactions on its behalf to another subnet.
+the \gwFull (\gls{gw}) and the \saFull (\gls{sa}), as well as a lightweight process we call the \emph{\gls{agent}} which submits the transactions involved in inter-subnet interaction. Concretely, \ipc agents read the replicated state of one subnet and submit transactions on its behalf to another subnet.
 Participants running those \ipc agents get rewarded for such mediation. 
 
 The \ipc architecture directly provides several primitives for cross-subnet interaction, such as:
