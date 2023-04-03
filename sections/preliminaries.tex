@@ -1,11 +1,6 @@
 \section{Preliminaries}
 \label{sec:preliminaries}
 
-The vocabulary used throughout this document is described in the Glossary \cite{glossary} (e.g., \emph{subnets}, \emph{actors}, \emph{accounts}, \emph{users}, and \emph{\ipc agents}).
-The reader is assumed to be familiar with the terminology defined there.
-\jorge{Despite this note, the vocabulary seems to be defined throughout the body. If we're defining in the body anyway, the appendix seems redundant -- this isn't a book.}
-\marko{If the glossary is stable, I suggest bringing it to the main body of the paper by defining concepts inline, as we go. Glossary can additionally stay in the appendix, for quick reference.}
-
 \paragraph{Basic abstractions.}
 A \emph{subnet} consists of multiple \emph{replicas}, yet we abstract a subnet as a single entity which maintains an  abstraction of \emph{replicated state} (of which each replica maintains a copy and that all replicas agree on)
 that can only be modified through \emph{transactions} \gls{submit}ted either by \emph{\glspl{user}} or by an \emph{\gls{agent}}.
